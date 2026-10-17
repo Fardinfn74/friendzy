@@ -1,0 +1,2 @@
+- Persist the user's light/dark choice under `imposta.theme` and apply it on the document root before paint to avoid theme flashes.
+- Express the interface as a centered Retro Toybox game board with sticker-like pieces and collectible role cards, because the game should feel physical and playful.

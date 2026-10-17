@@ -1,0 +1,1 @@
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS ai_theme text, ADD COLUMN IF NOT EXISTS ai_word text, ADD COLUMN IF NOT EXISTS ai_category text;

@@ -1,0 +1,14 @@
+{
+  "name": "FRIENDZY",
+  "short_name": "FRIENDZY",
+  "description": "Multiplayer party, brain, and board games with friends.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF4DC",
+  "theme_color": "#D93A2B",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/favicon.png", "sizes": "64x64", "type": "image/png" }
+  ]
+}
