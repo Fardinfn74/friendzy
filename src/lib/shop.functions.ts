@@ -86,6 +86,23 @@ export const registerAccountFn = createServerFn({ method: "POST" })
     return { ok: true as const, userId: authData.user.id };
   });
 
+export const prepareLoginFn = createServerFn({ method: "POST" })
+  .validator((d) => z.object({ username }).parse(d))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const email = `${data.username}@players.imposta.app`;
+    try {
+      const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+      const user = listData?.users?.find((u) => u.email === email);
+      if (user && !user.email_confirmed_at) {
+        await supabaseAdmin.auth.admin.updateUserById(user.id, { email_confirm: true });
+      }
+    } catch {
+      /* ignore */
+    }
+    return { ok: true as const };
+  });
+
 export const createAccountFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d) => z.object({ username, displayName: z.string().trim().min(2).max(20) }).parse(d))

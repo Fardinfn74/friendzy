@@ -8,10 +8,36 @@ function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
 }
 
+function sanitizeFetchInput(input: RequestInfo | URL): RequestInfo | URL {
+  if (typeof input === "string") {
+    return input
+      .replace("/rest/v1//auth/", "/auth/")
+      .replace("/rest/v1/auth/", "/auth/")
+      .replace("/rest/v1/rest/v1/", "/rest/v1/");
+  }
+  if (typeof Request !== "undefined" && input instanceof Request) {
+    if (
+      input.url.includes("/rest/v1/auth") ||
+      input.url.includes("/rest/v1//auth") ||
+      input.url.includes("/rest/v1/rest/v1")
+    ) {
+      const fixedUrl = input.url
+        .replace("/rest/v1//auth/", "/auth/")
+        .replace("/rest/v1/auth/", "/auth/")
+        .replace("/rest/v1/rest/v1/", "/rest/v1/");
+      return new Request(fixedUrl, input);
+    }
+  }
+  return input;
+}
+
 function createSupabaseFetch(supabaseKey: string): typeof fetch {
   return (input, init) => {
+    const fixedInput = sanitizeFetchInput(input);
     const headers = new Headers(
-      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
+      typeof Request !== "undefined" && fixedInput instanceof Request
+        ? fixedInput.headers
+        : undefined,
     );
 
     if (init?.headers) {
@@ -27,7 +53,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
     }
 
     headers.set("apikey", supabaseKey);
-    return fetch(input, { ...init, headers });
+    return fetch(fixedInput, { ...init, headers });
   };
 }
 

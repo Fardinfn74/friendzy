@@ -17,7 +17,12 @@ import {
 import { useAccount, usernameEmail } from "@/hooks/use-account";
 import { usePlayer } from "@/hooks/use-player";
 import { supabase } from "@/integrations/supabase/client";
-import { checkUsernameFn, createAccountFn, registerAccountFn } from "@/lib/shop.functions";
+import {
+  checkUsernameFn,
+  createAccountFn,
+  registerAccountFn,
+  prepareLoginFn,
+} from "@/lib/shop.functions";
 import { joinGameFn, saveProfile } from "@/lib/game.functions";
 import { pageHead } from "@/lib/page-head";
 import { AVATARS, avatarEmoji } from "@/lib/game-types";
@@ -42,7 +47,7 @@ export const Route = createFileRoute("/")({
 
 function FriendzyHubHome() {
   const { account, avatarId, loading, signedIn, refresh } = useAccount();
-  const { player, ready, save } = usePlayer();
+  const { player, ready, save, hasProfile } = usePlayer();
   const nav = useNavigate();
   const join = useServerFn(joinGameFn);
   const persist = useServerFn(saveProfile);
@@ -389,6 +394,7 @@ function FriendzyHubHome() {
 function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
   const check = useServerFn(checkUsernameFn);
   const register = useServerFn(registerAccountFn);
+  const prepareLogin = useServerFn(prepareLoginFn);
   const persist = useServerFn(saveProfile);
   const { player, save } = usePlayer();
 
@@ -496,11 +502,18 @@ function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
     }
     setBusy(true);
     try {
+      await prepareLogin({ data: { username: u } });
       const { data, error: signInErr } = await supabase.auth.signInWithPassword({
         email: usernameEmail(u),
         password,
       });
-      if (signInErr) throw new Error("Incorrect username or password.");
+      if (signInErr) {
+        throw new Error(
+          signInErr.message.includes("Invalid login credentials")
+            ? "Incorrect username or password."
+            : signInErr.message,
+        );
+      }
 
       onComplete();
     } catch (err) {
