@@ -230,6 +230,20 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.rpc_touch_profile(UUID) TO anon, authenticated, service_role;
 
--- Enable Realtime for live multiplayer updates on games & players
-ALTER PUBLICATION supabase_realtime ADD TABLE public.games;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.game_players;
+-- Enable Realtime for live multiplayer updates on games & players (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'games'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.games;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'game_players'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.game_players;
+  END IF;
+END $$;
