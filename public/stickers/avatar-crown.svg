@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 22,78 L 18,34 C 18,30 24,28 28,32 L 38,44 L 46,24 C 48,20 54,20 56,24 L 64,44 L 74,32 C 78,28 84,30 84,34 L 80,78 C 80,84 76,86 70,86 L 30,86 C 24,86 22,84 22,78 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Golden Crown -->
+  <path d="M 24,76 L 22,36 L 34,48 L 50,26 L 66,48 L 78,36 L 76,76 Z" 
+        fill="#f2b632" stroke="#1b1b2f" stroke-width="3.5" />
+  <!-- Velvet Headband Cushion -->
+  <rect x="22" y="70" width="56" height="12" rx="4" fill="#d93a2b" stroke="#1b1b2f" stroke-width="2.5" />
+  <!-- Crown Jewels (Rubies & Emeralds) -->
+  <circle cx="22" cy="34" r="3.5" fill="#ffffff" stroke="#1b1b2f" stroke-width="1.5" />
+  <circle cx="50" cy="24" r="4.5" fill="#d93a2b" stroke="#1b1b2f" stroke-width="2" />
+  <circle cx="78" cy="34" r="3.5" fill="#ffffff" stroke="#1b1b2f" stroke-width="1.5" />
+  <circle cx="36" cy="76" r="3" fill="#2ba39b" stroke="#1b1b2f" stroke-width="1" />
+  <circle cx="50" cy="76" r="3" fill="#ffffff" stroke="#1b1b2f" stroke-width="1" />
+  <circle cx="64" cy="76" r="3" fill="#2ba39b" stroke="#1b1b2f" stroke-width="1" />
+</svg>

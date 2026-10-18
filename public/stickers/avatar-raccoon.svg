@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 22,24 L 36,34 C 44,30 56,30 64,34 L 78,24 C 84,20 88,28 84,38 C 88,54 84,76 72,84 C 64,88 56,90 50,90 C 44,90 36,88 28,84 C 16,76 12,54 16,38 C 12,28 16,20 22,24 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Raccoon Head -->
+  <path d="M 26,30 L 36,38 C 44,34 56,34 64,38 L 74,30 C 80,44 80,66 70,78 C 62,84 56,86 50,86 C 44,86 38,84 30,78 C 20,66 20,44 26,30 Z" 
+        fill="#9c9cb0" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Ears -->
+  <polygon points="30,32 36,40 30,44" fill="#ffffff" />
+  <polygon points="70,32 64,40 70,44" fill="#ffffff" />
+  <!-- Bandit Mask (Dark) -->
+  <path d="M 24,52 C 32,46 44,48 50,56 C 56,48 68,46 76,52 C 74,62 66,66 50,66 C 34,66 26,62 24,52 Z" fill="#1b1b2f" />
+  <!-- White Eyebrows & White Muzzle -->
+  <ellipse cx="38" cy="46" rx="4" ry="2" fill="#ffffff" />
+  <ellipse cx="62" cy="46" rx="4" ry="2" fill="#ffffff" />
+  <path d="M 38,64 C 44,60 56,60 62,64 C 60,78 54,82 50,82 C 46,82 40,78 38,64 Z" fill="#ffffff" />
+  <!-- Eyes -->
+  <circle cx="38" cy="54" r="3.5" fill="#ffffff" />
+  <circle cx="38" cy="54" r="2" fill="#1b1b2f" />
+  <circle cx="62" cy="54" r="3.5" fill="#ffffff" />
+  <circle cx="62" cy="54" r="2" fill="#1b1b2f" />
+  <!-- Nose -->
+  <circle cx="50" cy="68" r="3" fill="#1b1b2f" />
+</svg>

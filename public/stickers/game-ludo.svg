@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 14,30 L 46,14 C 54,10 66,10 74,16 L 86,28 C 94,36 94,48 88,58 L 78,86 C 74,92 64,96 54,94 L 22,86 C 14,84 10,74 12,64 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- 3D Ludo Die -->
+  <rect x="18" y="34" width="46" height="46" rx="12" fill="#ffffff" stroke="#1b1b2f" stroke-width="4" transform="rotate(-12 41 57)" />
+  <!-- Die Pips (5 dots) -->
+  <circle cx="32" cy="48" r="4" fill="#d93a2b" />
+  <circle cx="50" cy="44" r="4" fill="#d93a2b" />
+  <circle cx="41" cy="57" r="4" fill="#d93a2b" />
+  <circle cx="32" cy="66" r="4" fill="#d93a2b" />
+  <circle cx="50" cy="62" r="4" fill="#d93a2b" />
+  <!-- Ludo Pawn (Racing in front) -->
+  <path d="M 64,48 C 64,42 68,36 74,36 C 80,36 84,42 84,48 C 84,52 82,56 78,58 L 84,80 C 85,84 81,88 74,88 C 67,88 63,84 64,80 L 70,58 C 66,56 64,52 64,48 Z" 
+        fill="#f2b632" stroke="#1b1b2f" stroke-width="3.5" />
+  <circle cx="74" cy="44" r="7" fill="#f2b632" stroke="#1b1b2f" stroke-width="3" />
+</svg>

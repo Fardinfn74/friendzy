@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Target, Trophy, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { avatarEmoji, type GameState } from "@/lib/game-types";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
 import { submitCarromShotResultFn, rematchCarromFn } from "@/lib/game.functions";
 import type { CarromCoin, CarromStriker } from "./types";
@@ -580,7 +581,7 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
                 }`}
               >
                 <div className="relative">
-                  <span className="text-xl">{avatarEmoji(playerProfile?.avatarId)}</span>
+                  <PlayerAvatar id={playerProfile?.avatarId} size={24} />
                   <span className="absolute -bottom-1 -right-1 text-xs">
                     {p.assignedColor === "white" ? "⚪" : "⚫"}
                   </span>

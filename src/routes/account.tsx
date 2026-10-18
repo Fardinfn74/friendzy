@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { usernameEmail, useAccount } from "@/hooks/use-account";
 import { supabase } from "@/integrations/supabase/client";
 import { avatarEmoji } from "@/lib/game-types";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { checkUsernameFn, createAccountFn } from "@/lib/shop.functions";
 
 export const Route = createFileRoute("/account")({
@@ -85,8 +86,8 @@ function AccountPage() {
         ) : signedIn && account ? (
           <div className="space-y-4">
             <section className="play-panel p-6 text-center space-y-4">
-              <div className="inline-flex items-center justify-center avatar-puck text-5xl mx-auto shadow-md">
-                {avatarEmoji(account.equippedSkin ?? avatarId)}
+              <div className="flex justify-center mx-auto">
+                <PlayerAvatar id={account.equippedSkin ?? avatarId} size={76} className="shadow-md" />
               </div>
               <div>
                 <h2 className="font-display text-3xl font-black">{account.displayName}</h2>

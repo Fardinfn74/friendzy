@@ -5,6 +5,7 @@ import { ArrowLeft, Clock, Send, Sparkles, Trophy, RotateCcw } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { avatarEmoji, type GameState, type PublicPlayer } from "@/lib/game-types";
+import { PlayerAvatar } from "@/components/player-avatar";
 import {
   advanceWordDuelRoundFn,
   rematchWordDuelFn,
@@ -102,16 +103,16 @@ export function WordDuelGame({ s, token, refresh, runAction }: WordDuelGameProps
 
         {/* Score Pill */}
         <div className="flex items-center gap-2 bg-card border-2 border-border rounded-2xl px-3 py-1.5 shadow-xs font-display">
-          <div className="flex items-center gap-1">
-            <span className="text-lg">{avatarEmoji(myPlayer?.avatarId)}</span>
+          <div className="flex items-center gap-1.5">
+            <PlayerAvatar id={myPlayer?.avatarId} size={24} />
             <span className="font-black text-lg">{wd.scores[s.me.profileId] ?? 0}</span>
           </div>
           <span className="text-muted-foreground font-black text-sm">:</span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <span className="font-black text-lg">
               {opponentPlayer ? (wd.scores[opponentPlayer.profileId] ?? 0) : 0}
             </span>
-            <span className="text-lg">{avatarEmoji(opponentPlayer?.avatarId)}</span>
+            <PlayerAvatar id={opponentPlayer?.avatarId} size={24} />
           </div>
         </div>
       </header>
@@ -230,8 +231,8 @@ function PickPhaseScreen({
       <div className="grid grid-cols-2 gap-3">
         {/* Your Status Card */}
         <div className="play-panel p-3.5 text-center space-y-1">
-          <div className="avatar-puck text-3xl mx-auto shadow-xs">
-            {avatarEmoji(myPlayer?.avatarId)}
+          <div className="flex justify-center mx-auto shadow-xs">
+            <PlayerAvatar id={myPlayer?.avatarId} size={40} />
           </div>
           <p className="font-display text-sm font-bold truncate">
             {myPlayer?.displayName ?? "You"}
@@ -247,8 +248,8 @@ function PickPhaseScreen({
 
         {/* Opponent Status Card */}
         <div className="play-panel p-3.5 text-center space-y-1">
-          <div className="avatar-puck text-3xl mx-auto shadow-xs">
-            {avatarEmoji(opponentPlayer?.avatarId)}
+          <div className="flex justify-center mx-auto shadow-xs">
+            <PlayerAvatar id={opponentPlayer?.avatarId} size={40} />
           </div>
           <p className="font-display text-sm font-bold truncate">
             {opponentPlayer?.displayName ?? "Opponent"}
@@ -798,7 +799,9 @@ function MatchEndedScreen({
       {/* Final Score Banner */}
       <div className="p-4 bg-card rounded-2xl border-3 border-border shadow-xs flex items-center justify-around font-display">
         <div className="text-center">
-          <span className="text-3xl">{avatarEmoji(myPlayer?.avatarId)}</span>
+          <div className="flex justify-center">
+            <PlayerAvatar id={myPlayer?.avatarId} size={44} />
+          </div>
           <p className="text-xs font-bold text-muted-foreground mt-1 truncate max-w-[90px]">
             {myPlayer?.displayName}
           </p>
@@ -810,7 +813,9 @@ function MatchEndedScreen({
         <span className="text-2xl font-black text-muted-foreground">-</span>
 
         <div className="text-center">
-          <span className="text-3xl">{avatarEmoji(opponentPlayer?.avatarId)}</span>
+          <div className="flex justify-center">
+            <PlayerAvatar id={opponentPlayer?.avatarId} size={44} />
+          </div>
           <p className="text-xs font-bold text-muted-foreground mt-1 truncate max-w-[90px]">
             {opponentPlayer?.displayName}
           </p>
@@ -849,8 +854,8 @@ function MatchEndedScreen({
                     </span>
                   </div>
                   {roundWinner && (
-                    <span className="text-xs font-bold flex items-center gap-1 text-muted-foreground">
-                      <span>{avatarEmoji(roundWinner.avatarId)}</span>
+                    <span className="text-xs font-bold flex items-center gap-1.5 text-muted-foreground">
+                      <PlayerAvatar id={roundWinner.avatarId} size={20} />
                       <span className="truncate max-w-[70px]">{roundWinner.displayName}</span>
                     </span>
                   )}

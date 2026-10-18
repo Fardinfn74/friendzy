@@ -31,9 +31,15 @@ export function GameLayout({
             ) : (
               <Link
                 to="/"
-                className="mini-brand font-display flex items-center gap-1.5 text-2xl font-black"
+                className="mini-brand font-display flex items-center gap-2 text-2xl font-black"
               >
-                <span className="text-xl">🎲</span>
+                <img
+                  src="/stickers/mark-dice.svg"
+                  alt=""
+                  width={28}
+                  height={28}
+                  className="size-7 shrink-0 select-none filter drop-shadow-sm transition-transform hover:rotate-6"
+                />
                 <span className="text-primary tracking-tight">[FRIENDZY]</span>
               </Link>
             )}

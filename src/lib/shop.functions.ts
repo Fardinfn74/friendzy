@@ -11,7 +11,7 @@ const username = z
   .regex(/^[a-z0-9_]{3,20}$/, "Username: 3–20 letters, numbers or _.");
 
 export const checkUsernameFn = createServerFn({ method: "POST" })
-  .inputValidator((d) => z.object({ username }).parse(d))
+  .validator((d) => z.object({ username }).parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
@@ -24,7 +24,7 @@ export const checkUsernameFn = createServerFn({ method: "POST" })
 
 export const createAccountFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z.object({ username, displayName: z.string().trim().min(2).max(20) }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -66,7 +66,7 @@ export const getAccountFn = createServerFn({ method: "POST" })
 
 export const buyItemFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ itemId: z.string().max(40) }).parse(d))
+  .validator((d) => z.object({ itemId: z.string().max(40) }).parse(d))
   .handler(async ({ data, context }) => {
     const item = itemById(data.itemId);
     if (!item) return { ok: false as const, error: "That item doesn't exist." };
@@ -82,7 +82,7 @@ export const buyItemFn = createServerFn({ method: "POST" })
 
 export const equipSkinFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ skin: z.string().max(40) }).parse(d))
+  .validator((d) => z.object({ skin: z.string().max(40) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (data.skin !== "classic") {
@@ -103,7 +103,7 @@ export const equipSkinFn = createServerFn({ method: "POST" })
 
 export const updateAccountFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ displayName: z.string().trim().min(2).max(16) }).parse(d))
+  .validator((d) => z.object({ displayName: z.string().trim().min(2).max(16) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Only this verified caller's cosmetic display name can change; balances and usernames cannot.

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 50,14 C 30,14 20,32 20,58 C 20,74 24,88 38,90 C 42,92 58,92 62,90 C 76,88 80,74 80,58 C 80,32 70,14 50,14 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Tuxedo Body -->
+  <ellipse cx="50" cy="56" rx="28" ry="32" fill="#1b1b2f" stroke="#1b1b2f" stroke-width="2" />
+  <!-- White Belly & Face Mask -->
+  <path d="M 50,28 C 40,28 34,36 34,48 C 34,70 40,84 50,84 C 60,84 66,70 66,48 C 66,36 60,28 50,28 Z" fill="#ffffff" />
+  <!-- Earmuffs/Headband (Retro Red) -->
+  <path d="M 24,42 C 24,24 76,24 76,42" stroke="#d93a2b" stroke-width="5" fill="none" stroke-linecap="round" />
+  <circle cx="24" cy="44" r="8" fill="#d93a2b" stroke="#1b1b2f" stroke-width="2.5" />
+  <circle cx="76" cy="44" r="8" fill="#d93a2b" stroke="#1b1b2f" stroke-width="2.5" />
+  <!-- Eyes -->
+  <circle cx="43" cy="46" r="3.5" fill="#1b1b2f" />
+  <circle cx="57" cy="46" r="3.5" fill="#1b1b2f" />
+  <!-- Orange Beak -->
+  <polygon points="45,52 55,52 50,60" fill="#f2b632" stroke="#1b1b2f" stroke-width="2" />
+</svg>

@@ -3,6 +3,7 @@ import { Chess, type Square } from "chess.js";
 import { Clock, RotateCcw, Flag, Trophy, AlertCircle, Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { avatarEmoji, type GameState } from "@/lib/game-types";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
 import { makeChessMoveFn, resignChessFn, rematchChessFn } from "@/lib/game.functions";
 
@@ -210,7 +211,7 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
                         : "border-border bg-card"
                     }`}
                   >
-                    <span>{avatarEmoji(opponent?.avatarId)}</span>
+                    <PlayerAvatar id={opponent?.avatarId} size={28} />
                     <span className="absolute -bottom-1 -right-1 text-xs">
                       {oppColor === "w" ? "⚪" : "⚫"}
                     </span>
@@ -333,7 +334,7 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
                         : "border-border bg-card"
                     }`}
                   >
-                    <span>{avatarEmoji(me?.avatarId ?? myPlayerObj?.avatarId)}</span>
+                    <PlayerAvatar id={me?.avatarId ?? myPlayerObj?.avatarId} size={28} />
                     <span className="absolute -bottom-1 -right-1 text-xs">
                       {myColor === "w" ? "⚪" : myColor === "b" ? "⚫" : "👀"}
                     </span>

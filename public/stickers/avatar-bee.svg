@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 50,14 C 44,14 42,20 40,24 C 28,14 14,24 20,40 C 14,52 18,74 34,84 C 42,90 58,90 66,84 C 82,74 86,52 80,40 C 86,24 72,14 60,24 C 58,20 56,14 50,14 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Translucent Wings -->
+  <ellipse cx="32" cy="34" rx="14" ry="10" fill="#a5f3fc" stroke="#1b1b2f" stroke-width="2.5" transform="rotate(-30 32 34)" />
+  <ellipse cx="68" cy="34" rx="14" ry="10" fill="#a5f3fc" stroke="#1b1b2f" stroke-width="2.5" transform="rotate(30 68 34)" />
+  <!-- Bee Body -->
+  <ellipse cx="50" cy="58" rx="28" ry="26" fill="#f2b632" stroke="#1b1b2f" stroke-width="3.5" />
+  <!-- Black Stripes -->
+  <path d="M 28,50 L 72,50 C 74,54 75,58 75,62 L 25,62 C 25,58 26,54 28,50 Z" fill="#1b1b2f" />
+  <path d="M 33,70 L 67,70 C 63,78 57,82 50,84 C 43,82 37,78 33,70 Z" fill="#1b1b2f" />
+  <!-- Antennas -->
+  <path d="M 44,34 Q 40,22 36,22" stroke="#1b1b2f" stroke-width="3" stroke-linecap="round" fill="none" />
+  <circle cx="36" cy="22" r="3" fill="#1b1b2f" />
+  <path d="M 56,34 Q 60,22 64,22" stroke="#1b1b2f" stroke-width="3" stroke-linecap="round" fill="none" />
+  <circle cx="64" cy="22" r="3" fill="#1b1b2f" />
+  <!-- Big Friendly Eyes -->
+  <circle cx="40" cy="42" r="4.5" fill="#1b1b2f" />
+  <circle cx="60" cy="42" r="4.5" fill="#1b1b2f" />
+  <circle cx="41" cy="40" r="1.5" fill="#ffffff" />
+  <circle cx="61" cy="40" r="1.5" fill="#ffffff" />
+  <!-- Smile -->
+  <path d="M 45,46 Q 50,50 55,46" stroke="#1b1b2f" stroke-width="2.5" stroke-linecap="round" fill="none" />
+</svg>

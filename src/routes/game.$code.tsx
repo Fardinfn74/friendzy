@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { usePlayer } from "@/hooks/use-player";
 import { avatarEmoji, MIN_PLAYERS, type GameState, type PublicPlayer } from "@/lib/game-types";
+import { PlayerAvatar } from "@/components/player-avatar";
 import {
   getStateFn,
   joinGameFn,
@@ -361,7 +362,7 @@ function TopBar({ s, token }: { s: GameState; token: string }) {
         to="/"
         className="flex items-center gap-1.5 font-display text-xl tracking-tight sm:text-2xl"
       >
-        <span className="text-xl">🎲</span>
+        <span className="text-xl"><img src="/stickers/mark-dice.svg" alt="" width={22} height={22} className="inline-block size-[22px] select-none drop-shadow-sm" /></span>
         <span className="text-primary font-black">[FRIENDZY]</span>
       </Link>
       <div className="flex min-w-0 items-center gap-1 sm:gap-2">
@@ -401,7 +402,7 @@ function PlayerChip({ p, children }: { p: PublicPlayer; children?: React.ReactNo
     <div
       className={`player-piece flex items-center gap-3 px-3.5 py-2.5 rounded-xl border-2 border-border bg-card/80 ${p.isEliminated || p.leftGame ? "opacity-40" : ""}`}
     >
-      <span className="avatar-puck text-2xl">{avatarEmoji(p.avatarId)}</span>
+      <PlayerAvatar id={p.avatarId} size={30} className="shrink-0" />
       <span className="flex-1 truncate font-bold text-sm">
         {p.displayName}{" "}
         {p.isHost && (
@@ -439,7 +440,15 @@ function Lobby({ s, token, refresh }: { s: GameState; token: string; refresh: ()
       {/* Game Banner Header */}
       <div className="flex items-center justify-between rounded-2xl border-3 border-border bg-secondary/80 p-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{game?.icon ?? "🎮"}</span>
+          <div className={`grid size-12 shrink-0 place-items-center rounded-2xl border-2 border-border shadow-sm p-1.5 ${game?.accentBg ?? "bg-muted"}`}>
+            <img
+              src={game?.stickerUrl ?? "/stickers/mark-dice.svg"}
+              alt={game?.name ?? "Game"}
+              width={36}
+              height={36}
+              className="size-9 select-none drop-shadow-sm"
+            />
+          </div>
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
               {game?.name ?? "Game Room"}

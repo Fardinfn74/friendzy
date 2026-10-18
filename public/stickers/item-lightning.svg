@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <polygon points="56,6 24,54 48,54 40,94 76,46 52,46" fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Lightning Bolt -->
+  <polygon points="56,12 28,52 50,52 44,88 72,48 50,48" fill="#f2b632" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Neon Inner Glow line -->
+  <polygon points="54,20 36,49 48,49 45,74 64,48 50,48" fill="#ffffff" opacity="0.6" />
+</svg>

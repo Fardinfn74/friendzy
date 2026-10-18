@@ -6,6 +6,9 @@ export type GameEntry = {
   id: string;
   name: string;
   icon: string;
+  stickerUrl: string;
+  /** Background accent colour for the sticker tile (Tailwind class fragment). */
+  accentBg: string;
   tagline: string;
   category: GameCategory;
   minPlayers: number;
@@ -20,6 +23,8 @@ export const GAMES: GameEntry[] = [
     id: "imposter",
     name: "Imposter",
     icon: "🕵️",
+    stickerUrl: "/stickers/game-imposter.svg",
+    accentBg: "bg-amber-400",
     tagline: "Spot the bluff & unmask the secret imposter",
     category: "Party",
     minPlayers: 3,
@@ -32,6 +37,8 @@ export const GAMES: GameEntry[] = [
     id: "word-duel",
     name: "Word Duel",
     icon: "⚔️",
+    stickerUrl: "/stickers/game-word-duel.svg",
+    accentBg: "bg-teal-400",
     tagline: "Fast-paced 1v1 vocabulary battle",
     category: "Brain",
     minPlayers: 2,
@@ -44,6 +51,8 @@ export const GAMES: GameEntry[] = [
     id: "number-guess",
     name: "Number Guess",
     icon: "🔢",
+    stickerUrl: "/stickers/game-number-guess.svg",
+    accentBg: "bg-violet-400",
     tagline: "Higher or lower bluff & deduction challenge",
     category: "Brain",
     minPlayers: 2,
@@ -56,6 +65,8 @@ export const GAMES: GameEntry[] = [
     id: "bottle-spin",
     name: "Bottle Spin",
     icon: "🍾",
+    stickerUrl: "/stickers/game-bottle-spin.svg",
+    accentBg: "bg-pink-400",
     tagline: "Classic party wheel spin for friends",
     category: "Party",
     minPlayers: 3,
@@ -68,6 +79,8 @@ export const GAMES: GameEntry[] = [
     id: "truth-or-dare",
     name: "Truth or Dare",
     icon: "🎭",
+    stickerUrl: "/stickers/game-truth-or-dare.svg",
+    accentBg: "bg-rose-400",
     tagline: "Hilarious secrets & cheeky physical dares",
     category: "Party",
     minPlayers: 3,
@@ -80,6 +93,8 @@ export const GAMES: GameEntry[] = [
     id: "chess",
     name: "Chess",
     icon: "♟️",
+    stickerUrl: "/stickers/game-chess.svg",
+    accentBg: "bg-slate-400",
     tagline: "Timeless 1v1 tactical strategy",
     category: "Board",
     minPlayers: 2,
@@ -92,6 +107,8 @@ export const GAMES: GameEntry[] = [
     id: "ludo",
     name: "Ludo",
     icon: "🎲",
+    stickerUrl: "/stickers/game-ludo.svg",
+    accentBg: "bg-blue-400",
     tagline: "Roll the dice, race tokens, send friends back",
     category: "Board",
     minPlayers: 2,
@@ -104,6 +121,8 @@ export const GAMES: GameEntry[] = [
     id: "carrom",
     name: "Carrom",
     icon: "🎯",
+    stickerUrl: "/stickers/game-carrom.svg",
+    accentBg: "bg-orange-400",
     tagline: "Flick the striker, claim coins & pocket the queen",
     category: "Board",
     minPlayers: 2,

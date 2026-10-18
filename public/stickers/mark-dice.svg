@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- White die-cut outline -->
+  <rect x="12" y="12" width="96" height="96" rx="30" fill="#ffffff" stroke="#1b1b2f" stroke-width="7" />
+  <!-- Dice Base -->
+  <rect x="18" y="18" width="84" height="84" rx="24" fill="#2ba39b" stroke="#1b1b2f" stroke-width="4.5" />
+  <!-- 3D bottom bevel -->
+  <path d="M 18,80 C 18,92 28,102 42,102 L 78,102 C 92,102 102,92 102,80 L 102,74 L 18,74 Z" fill="#1b6e68" />
+  <!-- Gloss highlight -->
+  <path d="M 28,26 C 28,24 30,22 34,22 L 86,22 C 90,22 92,24 92,26 C 92,30 90,32 86,32 L 34,32 C 30,32 28,30 28,26 Z" fill="#ffffff" opacity="0.35" />
+  <!-- Dice Dots (F-Pips) -->
+  <circle cx="42" cy="42" r="8" fill="#ffffff" stroke="#1b1b2f" stroke-width="3" />
+  <circle cx="78" cy="42" r="8" fill="#f2b632" stroke="#1b1b2f" stroke-width="3" />
+  <circle cx="60" cy="60" r="8" fill="#ffffff" stroke="#1b1b2f" stroke-width="3" />
+  <circle cx="42" cy="78" r="8" fill="#f2b632" stroke="#1b1b2f" stroke-width="3" />
+  <circle cx="78" cy="78" r="8" fill="#ffffff" stroke="#1b1b2f" stroke-width="3" />
+</svg>

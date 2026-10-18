@@ -5,6 +5,7 @@ import { ChevronUp, ChevronDown, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { avatarEmoji } from "@/lib/game-types";
+import { PlayerAvatar } from "@/components/player-avatar";
 import type { GameState, PublicPlayer } from "@/lib/game-types";
 import {
   lockNumberGuessFn,
@@ -180,7 +181,7 @@ function ScoreRow({ p, score, isSelf }: { p: PublicPlayer; score: number; isSelf
         isSelf ? "border-primary bg-primary/10 font-bold" : "border-border bg-card/60"
       }`}
     >
-      <span className="text-2xl">{avatarEmoji(p.avatarId)}</span>
+      <PlayerAvatar id={p.avatarId} size={28} className="shrink-0" />
       <span className="flex-1 truncate text-sm font-bold">
         {p.displayName}
         {isSelf && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
@@ -351,8 +352,8 @@ export function NumberGuessGame({ s, token, refresh }: NumberGuessGameProps) {
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
             {activePlayers.map((p) => (
-              <div key={p.profileId} className="flex flex-col items-center gap-0.5">
-                <span className="text-2xl">{avatarEmoji(p.avatarId)}</span>
+              <div key={p.profileId} className="flex flex-col items-center gap-1">
+                <PlayerAvatar id={p.avatarId} size={28} />
                 <span
                   className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full ${
                     ng.locked[p.profileId]
@@ -455,7 +456,7 @@ export function NumberGuessGame({ s, token, refresh }: NumberGuessGameProps) {
                     selected ? "border-primary bg-primary/10 shadow-md" : "border-border bg-card/70"
                   }`}
                 >
-                  <span className="text-3xl">{avatarEmoji(p.avatarId)}</span>
+                  <PlayerAvatar id={p.avatarId} size={36} />
                   <span className="text-xs font-bold truncate max-w-[72px]">{p.displayName}</span>
                   {myGuessesHere.length > 0 && (
                     <span className="text-[10px] font-black text-muted-foreground">
@@ -483,8 +484,8 @@ export function NumberGuessGame({ s, token, refresh }: NumberGuessGameProps) {
         {/* Guess input */}
         {target && (
           <div className="play-panel p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-3xl">{avatarEmoji(target.avatarId)}</span>
+            <div className="flex items-center gap-2.5">
+              <PlayerAvatar id={target.avatarId} size={36} />
               <div>
                 <p className="font-display font-bold">
                   Guessing {target.displayName}&apos;s number
@@ -598,7 +599,7 @@ export function NumberGuessGame({ s, token, refresh }: NumberGuessGameProps) {
                     key={p.profileId}
                     className="flex items-center gap-3 rounded-xl border-2 border-border bg-card/60 px-3 py-2"
                   >
-                    <span className="text-2xl">{avatarEmoji(p.avatarId)}</span>
+                    <PlayerAvatar id={p.avatarId} size={28} className="shrink-0" />
                     <span className="flex-1 font-bold text-sm">
                       {p.displayName}
                       {p.profileId === myProfileId && (
@@ -678,7 +679,7 @@ export function NumberGuessGame({ s, token, refresh }: NumberGuessGameProps) {
                       key={p.profileId}
                       className="flex items-center gap-3 rounded-xl border-2 border-border bg-card/60 px-3 py-2"
                     >
-                      <span className="text-2xl">{avatarEmoji(p.avatarId)}</span>
+                      <PlayerAvatar id={p.avatarId} size={28} className="shrink-0" />
                       <span className="flex-1 font-bold text-sm">{p.displayName}</span>
                       <span className="font-display text-2xl font-black text-primary">
                         {secrets[p.profileId] ?? "?"}

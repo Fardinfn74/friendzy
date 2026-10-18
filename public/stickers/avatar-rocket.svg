@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 50,8 C 50,8 70,28 72,56 L 86,68 C 90,72 88,80 82,80 L 70,76 L 68,88 C 66,94 58,94 56,88 L 50,82 L 44,88 C 42,94 34,94 32,88 L 30,76 L 18,80 C 12,80 10,72 14,68 L 28,56 C 30,28 50,8 50,8 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Rocket Body -->
+  <path d="M 50,12 C 50,12 68,32 68,64 L 32,64 C 32,32 50,12 50,12 Z" fill="#f6ebd1" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Red Nose Cone -->
+  <path d="M 50,12 C 50,12 58,22 62,32 L 38,32 C 42,22 50,12 50,12 Z" fill="#d93a2b" stroke="#1b1b2f" stroke-width="2.5" />
+  <!-- Porthole Window -->
+  <circle cx="50" cy="46" r="9" fill="#38bdf8" stroke="#1b1b2f" stroke-width="3" />
+  <circle cx="50" cy="46" r="5" fill="#a5f3fc" />
+  <!-- Fins -->
+  <polygon points="32,56 16,74 30,72" fill="#d93a2b" stroke="#1b1b2f" stroke-width="2.5" />
+  <polygon points="68,56 84,74 70,72" fill="#d93a2b" stroke="#1b1b2f" stroke-width="2.5" />
+  <!-- Exhaust Flame -->
+  <polygon points="40,66 50,86 60,66 50,72" fill="#f2b632" stroke="#1b1b2f" stroke-width="2" />
+  <polygon points="45,66 50,78 55,66" fill="#d93a2b" />
+</svg>

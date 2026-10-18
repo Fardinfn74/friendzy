@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 28,18 C 16,18 10,28 10,40 C 10,54 22,60 32,60 C 36,68 44,72 44,78 L 38,80 C 32,80 32,90 38,90 L 62,90 C 68,90 68,80 62,80 L 56,78 C 56,72 64,68 68,60 C 78,60 90,54 90,40 C 90,28 84,18 72,18 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Cup Base & Stem -->
+  <rect x="36" y="82" width="28" height="8" rx="3" fill="#9e1f14" stroke="#1b1b2f" stroke-width="2.5" />
+  <path d="M 46,70 L 46,82 L 54,82 L 54,70 Z" fill="#f2b632" stroke="#1b1b2f" stroke-width="2.5" />
+  <!-- Trophy Cup Body -->
+  <path d="M 30,22 L 70,22 C 70,22 70,58 50,66 C 30,58 30,22 30,22 Z" fill="#f2b632" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Handles -->
+  <path d="M 30,28 C 16,28 16,50 30,52" stroke="#f2b632" stroke-width="5" stroke-linecap="round" fill="none" />
+  <path d="M 30,28 C 16,28 16,50 30,52" stroke="#1b1b2f" stroke-width="2.5" stroke-linecap="round" fill="none" />
+  <path d="M 70,28 C 84,28 84,50 70,52" stroke="#f2b632" stroke-width="5" stroke-linecap="round" fill="none" />
+  <path d="M 70,28 C 84,28 84,50 70,52" stroke="#1b1b2f" stroke-width="2.5" stroke-linecap="round" fill="none" />
+  <!-- Star on Cup -->
+  <polygon points="50,34 52,40 58,41 54,45 55,51 50,48 45,51 46,45 42,41 48,40" fill="#ffffff" stroke="#1b1b2f" stroke-width="1.5" />
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 20,24 L 38,36 C 42,34 58,34 62,36 L 80,24 C 84,20 88,26 86,34 L 80,56 C 80,74 66,88 50,88 C 34,88 20,74 20,56 L 14,34 C 12,26 16,20 20,24 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Fox Face Base -->
+  <path d="M 24,28 L 38,38 C 42,36 58,36 62,38 L 76,28 L 74,54 C 74,70 62,82 50,82 C 38,82 26,70 26,54 Z" fill="#f28e2b" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Inner Ears -->
+  <polygon points="26,30 36,38 28,42" fill="#ffffff" />
+  <polygon points="74,30 64,38 72,42" fill="#ffffff" />
+  <!-- White Muzzle -->
+  <path d="M 28,56 C 36,52 44,52 50,60 C 56,52 64,52 72,56 C 70,74 58,82 50,82 C 42,82 30,74 28,56 Z" fill="#ffffff" />
+  <!-- Nose & Eyes -->
+  <circle cx="38" cy="50" r="4" fill="#1b1b2f" />
+  <circle cx="62" cy="50" r="4" fill="#1b1b2f" />
+  <polygon points="46,62 54,62 50,68" fill="#1b1b2f" />
+  <!-- Rosy cheeks -->
+  <circle cx="30" cy="58" r="4" fill="#d93a2b" opacity="0.6" />
+  <circle cx="70" cy="58" r="4" fill="#d93a2b" opacity="0.6" />
+</svg>

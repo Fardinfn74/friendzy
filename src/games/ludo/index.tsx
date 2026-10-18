@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Dices, Trophy, Sparkles, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { avatarEmoji, type GameState } from "@/lib/game-types";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
 import { rollLudoDiceFn, moveLudoTokenFn, rematchLudoFn } from "@/lib/game.functions";
 import type { LudoColor } from "./types";
@@ -513,7 +514,7 @@ export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
                 }`}
               >
                 <div className="relative">
-                  <span className="text-xl">{avatarEmoji(playerProfile?.avatarId)}</span>
+                  <PlayerAvatar id={playerProfile?.avatarId} size={24} />
                   <span className="absolute -bottom-1 -right-1 text-xs">
                     {p.color === "red"
                       ? "🔴"

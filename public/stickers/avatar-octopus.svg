@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 50,14 C 28,14 20,32 20,50 C 20,60 16,68 18,78 C 20,86 28,86 32,80 C 36,86 44,88 48,80 C 52,88 60,86 64,80 C 68,86 76,86 80,78 C 82,68 80,60 80,50 C 80,32 72,14 50,14 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Octopus Head -->
+  <path d="M 50,18 C 32,18 24,34 24,52 C 24,66 22,74 24,78 C 26,82 30,82 32,76 C 36,82 42,82 46,76 C 50,82 56,82 60,76 C 64,82 70,82 74,76 C 76,74 76,66 76,52 C 76,34 68,18 50,18 Z" 
+        fill="#ff6b6b" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Suction Cup Dots -->
+  <circle cx="28" cy="74" r="2.5" fill="#f2b632" />
+  <circle cx="40" cy="74" r="2.5" fill="#f2b632" />
+  <circle cx="54" cy="74" r="2.5" fill="#f2b632" />
+  <circle cx="68" cy="74" r="2.5" fill="#f2b632" />
+  <!-- Eyes -->
+  <circle cx="38" cy="46" r="6" fill="#ffffff" stroke="#1b1b2f" stroke-width="2" />
+  <circle cx="38" cy="46" r="3" fill="#1b1b2f" />
+  <!-- Playful Winking Eye -->
+  <path d="M 58,46 Q 64,42 68,46" stroke="#1b1b2f" stroke-width="3.5" stroke-linecap="round" fill="none" />
+  <!-- Cute small mouth -->
+  <circle cx="50" cy="56" r="3" fill="#d93a2b" stroke="#1b1b2f" stroke-width="1.5" />
+</svg>

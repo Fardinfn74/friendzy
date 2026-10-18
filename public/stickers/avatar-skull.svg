@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 50,14 C 30,14 20,28 20,48 C 20,60 26,68 32,70 L 32,84 C 32,88 38,90 42,90 L 58,90 C 62,90 68,88 68,84 L 68,70 C 74,68 80,60 80,48 C 80,28 70,14 50,14 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Skull Cranium -->
+  <path d="M 50,18 C 34,18 24,30 24,50 C 24,60 28,66 36,68 L 36,84 L 64,84 L 64,68 C 72,66 76,60 76,50 C 76,30 66,18 50,18 Z" 
+        fill="#f6ebd1" stroke="#1b1b2f" stroke-width="3.5" />
+  <!-- Big Eye Sockets -->
+  <circle cx="38" cy="48" r="9" fill="#1b1b2f" />
+  <circle cx="62" cy="48" r="9" fill="#1b1b2f" />
+  <!-- Inverted Heart Nose -->
+  <path d="M 47,60 L 50,56 L 53,60 Z" fill="#1b1b2f" />
+  <!-- Teeth / Jaw Notches -->
+  <rect x="42" y="74" width="4" height="8" rx="1.5" fill="#1b1b2f" />
+  <rect x="48" y="74" width="4" height="8" rx="1.5" fill="#f2b632" stroke="#1b1b2f" stroke-width="1" />
+  <rect x="54" y="74" width="4" height="8" rx="1.5" fill="#1b1b2f" />
+</svg>

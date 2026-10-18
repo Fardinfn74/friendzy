@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 22,26 C 14,26 12,38 20,44 C 14,52 14,72 26,82 C 34,88 42,90 50,90 C 58,90 66,88 74,82 C 86,72 86,52 80,44 C 88,38 86,26 78,26 C 70,26 68,34 68,36 C 62,34 56,34 50,34 C 44,34 38,34 32,36 C 32,34 30,26 22,26 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Panda Head -->
+  <ellipse cx="50" cy="60" rx="32" ry="26" fill="#f6ebd1" stroke="#1b1b2f" stroke-width="3.5" />
+  <!-- Black Ears -->
+  <circle cx="26" cy="34" r="10" fill="#1b1b2f" />
+  <circle cx="74" cy="34" r="10" fill="#1b1b2f" />
+  <!-- Black Eye Patches (Tilted) -->
+  <ellipse cx="36" cy="54" rx="8" ry="10" fill="#1b1b2f" transform="rotate(-15 36 54)" />
+  <ellipse cx="64" cy="54" rx="8" ry="10" fill="#1b1b2f" transform="rotate(15 64 54)" />
+  <!-- White Pupils -->
+  <circle cx="36" cy="52" r="3" fill="#ffffff" />
+  <circle cx="64" cy="52" r="3" fill="#ffffff" />
+  <!-- Nose & Mouth -->
+  <ellipse cx="50" cy="65" rx="5" ry="3.5" fill="#1b1b2f" />
+  <path d="M 45,70 Q 50,74 55,70" stroke="#1b1b2f" stroke-width="2" fill="none" stroke-linecap="round" />
+</svg>

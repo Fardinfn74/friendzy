@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAccount } from "@/hooks/use-account";
 import { avatarEmoji, type GameState, type PublicPlayer } from "@/lib/game-types";
+import { PlayerAvatar, Emoji } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
 import { confirmCardFn, playAgainFn, submitHintFn, submitVoteFn } from "@/lib/game.functions";
 
@@ -45,7 +46,7 @@ function PlayerChip({ p, children }: { p: PublicPlayer; children?: React.ReactNo
     <div
       className={`player-piece flex items-center gap-3 px-3 py-2 ${p.isEliminated || p.leftGame ? "opacity-40" : ""}`}
     >
-      <span className="avatar-puck text-2xl">{avatarEmoji(p.avatarId)}</span>
+      <PlayerAvatar id={p.avatarId} size={30} className="shrink-0" />
       <span className="flex-1 truncate font-medium">
         {p.displayName} {p.isHost && <span className="text-xs text-ember font-bold">HOST</span>}
         {p.isEliminated && <span className="ml-1 text-xs text-muted-foreground">out</span>}
@@ -193,9 +194,11 @@ export function RoundScreen({
           {s.me.isMyTurn ? (
             <HintInput s={s} token={token} refresh={refresh} runAction={runAction} />
           ) : (
-            <p>
-              <span className="text-2xl">{avatarEmoji(current?.avatarId)}</span>{" "}
-              <b>{current?.displayName ?? "…"}</b> is giving a clue
+            <p className="flex items-center justify-center gap-2">
+              <PlayerAvatar id={current?.avatarId} size={28} />
+              <span>
+                <b>{current?.displayName ?? "…"}</b> is giving a clue
+              </span>
             </p>
           )}
           {s.me.isEliminated && (
@@ -212,9 +215,9 @@ export function RoundScreen({
         <div className="play-panel result-burst animate-rise p-6 text-center">
           {s.lastEliminated.profileId ? (
             <>
-              <p className="text-4xl">
-                {avatarEmoji(byId.get(s.lastEliminated.profileId)?.avatarId)}
-              </p>
+              <div className="flex justify-center mb-2">
+                <PlayerAvatar id={byId.get(s.lastEliminated.profileId)?.avatarId} size={64} />
+              </div>
               <p className="mt-2 font-display text-xl font-bold">
                 {byId.get(s.lastEliminated.profileId)?.displayName} was voted out
               </p>
@@ -247,7 +250,7 @@ export function RoundScreen({
               className="flex items-center gap-2 text-sm border-b border-border/30 pb-1.5 last:border-none"
             >
               <span className="text-xs text-muted-foreground">R{h.roundNumber}</span>
-              <span>{avatarEmoji(p?.avatarId)}</span>
+              <PlayerAvatar id={p?.avatarId} size={22} />
               <b>{p?.displayName}</b>
               <span className={h.skipped ? "italic text-muted-foreground" : ""}>
                 {h.skipped ? "stayed silent" : h.message}

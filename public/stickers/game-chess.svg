@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 22,88 C 22,84 28,82 32,80 L 34,66 C 30,62 26,52 28,42 C 30,32 38,22 50,14 C 54,12 60,14 62,20 C 66,22 72,28 72,36 C 72,46 64,56 64,66 L 68,80 C 72,82 78,84 78,88 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Wooden Knight Silhouette -->
+  <path d="M 36,80 L 36,66 C 32,60 30,50 32,42 C 34,32 42,22 52,18 C 55,20 58,26 56,32 C 64,30 68,36 66,46 C 62,56 60,66 62,80 Z" 
+        fill="#f6ebd1" stroke="#1b1b2f" stroke-width="4" stroke-linejoin="round" />
+  <!-- Knight Mane (Retro notches) -->
+  <path d="M 54,20 L 64,24 L 56,32 L 66,36 L 58,46" stroke="#d93a2b" stroke-width="4" stroke-linecap="round" fill="none" />
+  <!-- Knight Eye & Muzzle -->
+  <circle cx="42" cy="34" r="3" fill="#1b1b2f" />
+  <circle cx="35" cy="46" r="2" fill="#1b1b2f" />
+  <!-- Chunky Pedestal Base -->
+  <rect x="28" y="80" width="44" height="10" rx="4" fill="#f2b632" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Star spark -->
+  <polygon points="74,18 76,24 82,25 78,29 79,35 74,32 69,35 70,29 66,25 72,24" fill="#f2b632" stroke="#1b1b2f" stroke-width="2" />
+</svg>

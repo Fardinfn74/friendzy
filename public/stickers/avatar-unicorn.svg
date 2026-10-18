@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 50,10 L 58,26 L 76,28 C 82,28 86,34 84,42 C 88,58 84,76 72,84 C 64,88 56,90 50,90 C 44,90 36,88 28,84 C 16,76 12,58 16,42 C 14,34 18,28 24,28 L 42,26 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Golden Spiral Horn -->
+  <polygon points="50,12 44,30 56,30" fill="#f2b632" stroke="#1b1b2f" stroke-width="2.5" />
+  <line x1="46" y1="24" x2="54" y2="22" stroke="#1b1b2f" stroke-width="2" />
+  <line x1="48" y1="18" x2="52" y2="16" stroke="#1b1b2f" stroke-width="1.5" />
+  <!-- Head Base -->
+  <path d="M 28,34 L 38,40 C 44,36 56,36 62,40 L 72,34 L 74,56 C 74,72 64,84 50,84 C 36,84 26,72 26,56 Z" 
+        fill="#f6ebd1" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Pastel Rainbow Mane Tuft -->
+  <path d="M 32,32 C 34,24 44,24 46,32" stroke="#ff9999" stroke-width="4" stroke-linecap="round" />
+  <path d="M 54,32 C 56,24 66,24 68,32" stroke="#a5f3fc" stroke-width="4" stroke-linecap="round" />
+  <!-- Friendly Lash Eyes -->
+  <circle cx="38" cy="52" r="4.5" fill="#1b1b2f" />
+  <circle cx="39" cy="50" r="1.5" fill="#ffffff" />
+  <circle cx="62" cy="52" r="4.5" fill="#1b1b2f" />
+  <circle cx="63" cy="50" r="1.5" fill="#ffffff" />
+  <!-- Star on cheek -->
+  <polygon points="30,62 31,64 34,64 32,66 33,68 30,67 27,68 28,66 26,64 29,64" fill="#f2b632" />
+  <polygon points="70,62 71,64 74,64 72,66 73,68 70,67 67,68 68,66 66,64 69,64" fill="#f2b632" />
+  <!-- Smile -->
+  <path d="M 44,66 Q 50,70 56,66" stroke="#1b1b2f" stroke-width="2.5" stroke-linecap="round" fill="none" />
+</svg>

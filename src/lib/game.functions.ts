@@ -16,7 +16,7 @@ function wrap(error: unknown): never {
 }
 
 export const saveProfile = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({ sessionToken: token, displayName: z.string(), avatarId: z.string().max(24) })
       .parse(data),
@@ -32,7 +32,7 @@ export const saveProfile = createServerFn({ method: "POST" })
   });
 
 export const createGameFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z.object({ sessionToken: token, gameType: z.string().optional() }).parse(data),
   )
   .handler(async ({ data }) => {
@@ -45,7 +45,7 @@ export const createGameFn = createServerFn({ method: "POST" })
   });
 
 export const joinGameFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -56,7 +56,7 @@ export const joinGameFn = createServerFn({ method: "POST" })
   });
 
 export const getStateFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }): Promise<GameState> => {
     const engine = await import("./game-engine.server");
     try {
@@ -67,7 +67,7 @@ export const getStateFn = createServerFn({ method: "POST" })
   });
 
 export const setReadyFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code, ready: z.boolean() }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code, ready: z.boolean() }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -79,7 +79,7 @@ export const setReadyFn = createServerFn({ method: "POST" })
   });
 
 export const updateSettingsFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         sessionToken: token,
@@ -166,7 +166,7 @@ export const updateSettingsFn = createServerFn({ method: "POST" })
   });
 
 export const kickPlayerFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z.object({ sessionToken: token, code, targetProfileId: z.string().uuid() }).parse(data),
   )
   .handler(async ({ data }) => {
@@ -180,7 +180,7 @@ export const kickPlayerFn = createServerFn({ method: "POST" })
   });
 
 export const startGameFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -192,7 +192,7 @@ export const startGameFn = createServerFn({ method: "POST" })
   });
 
 export const confirmCardFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -204,7 +204,7 @@ export const confirmCardFn = createServerFn({ method: "POST" })
   });
 
 export const submitHintFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z.object({ sessionToken: token, code, message: z.string().min(1).max(200) }).parse(data),
   )
   .handler(async ({ data }) => {
@@ -218,7 +218,7 @@ export const submitHintFn = createServerFn({ method: "POST" })
   });
 
 export const submitVoteFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         sessionToken: token,
@@ -242,7 +242,7 @@ export const submitVoteFn = createServerFn({ method: "POST" })
   });
 
 export const playAgainFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -254,7 +254,7 @@ export const playAgainFn = createServerFn({ method: "POST" })
   });
 
 export const leaveGameFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -266,7 +266,7 @@ export const leaveGameFn = createServerFn({ method: "POST" })
   });
 
 export const generateThemeWordFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z.object({ sessionToken: token, code, theme: z.string().trim().min(2).max(60) }).parse(data),
   )
   .handler(async ({ data }) => {
@@ -283,7 +283,7 @@ export const generateThemeWordFn = createServerFn({ method: "POST" })
   });
 
 export const sendWordDuelLetterFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         sessionToken: token,
@@ -303,7 +303,7 @@ export const sendWordDuelLetterFn = createServerFn({ method: "POST" })
   });
 
 export const submitWordDuelWordFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         sessionToken: token,
@@ -323,7 +323,7 @@ export const submitWordDuelWordFn = createServerFn({ method: "POST" })
   });
 
 export const advanceWordDuelRoundFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -335,7 +335,7 @@ export const advanceWordDuelRoundFn = createServerFn({ method: "POST" })
   });
 
 export const rematchWordDuelFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -347,7 +347,7 @@ export const rematchWordDuelFn = createServerFn({ method: "POST" })
   });
 
 export const lockNumberGuessFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         sessionToken: token,
@@ -367,7 +367,7 @@ export const lockNumberGuessFn = createServerFn({ method: "POST" })
   });
 
 export const submitNumberGuessFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         sessionToken: token,
@@ -393,7 +393,7 @@ export const submitNumberGuessFn = createServerFn({ method: "POST" })
   });
 
 export const advanceNumberGuessRoundFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -405,7 +405,7 @@ export const advanceNumberGuessRoundFn = createServerFn({ method: "POST" })
   });
 
 export const rematchNumberGuessFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -419,7 +419,7 @@ export const rematchNumberGuessFn = createServerFn({ method: "POST" })
 /* ----------------------------------------------------------- bottle spin functions --- */
 
 export const spinBottleFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -431,7 +431,7 @@ export const spinBottleFn = createServerFn({ method: "POST" })
   });
 
 export const chooseBottlePromptFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z.object({ sessionToken: token, code, type: z.enum(["truth", "dare"]) }).parse(data),
   )
   .handler(async ({ data }) => {
@@ -445,7 +445,7 @@ export const chooseBottlePromptFn = createServerFn({ method: "POST" })
   });
 
 export const completeBottlePromptFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -457,7 +457,7 @@ export const completeBottlePromptFn = createServerFn({ method: "POST" })
   });
 
 export const skipBottlePromptFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -471,7 +471,7 @@ export const skipBottlePromptFn = createServerFn({ method: "POST" })
 /* -------------------------------------------------------- truth or dare functions --- */
 
 export const chooseTruthOrDarePromptFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z.object({ sessionToken: token, code, type: z.enum(["truth", "dare"]) }).parse(data),
   )
   .handler(async ({ data }) => {
@@ -485,7 +485,7 @@ export const chooseTruthOrDarePromptFn = createServerFn({ method: "POST" })
   });
 
 export const completeTruthOrDarePromptFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -497,7 +497,7 @@ export const completeTruthOrDarePromptFn = createServerFn({ method: "POST" })
   });
 
 export const skipTruthOrDarePromptFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -511,7 +511,7 @@ export const skipTruthOrDarePromptFn = createServerFn({ method: "POST" })
 /* ------------------------------------------------------------- chess functions --- */
 
 export const makeChessMoveFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         sessionToken: token,
@@ -539,7 +539,7 @@ export const makeChessMoveFn = createServerFn({ method: "POST" })
   });
 
 export const resignChessFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -551,7 +551,7 @@ export const resignChessFn = createServerFn({ method: "POST" })
   });
 
 export const rematchChessFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -565,7 +565,7 @@ export const rematchChessFn = createServerFn({ method: "POST" })
 /* -------------------------------------------------------------- ludo functions --- */
 
 export const rollLudoDiceFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -577,7 +577,7 @@ export const rollLudoDiceFn = createServerFn({ method: "POST" })
   });
 
 export const moveLudoTokenFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         sessionToken: token,
@@ -597,7 +597,7 @@ export const moveLudoTokenFn = createServerFn({ method: "POST" })
   });
 
 export const rematchLudoFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -611,7 +611,7 @@ export const rematchLudoFn = createServerFn({ method: "POST" })
 /* ------------------------------------------------------------ carrom functions --- */
 
 export const submitCarromShotResultFn = createServerFn({ method: "POST" })
-  .inputValidator((data) =>
+  .validator((data) =>
     z
       .object({
         sessionToken: token,
@@ -637,7 +637,7 @@ export const submitCarromShotResultFn = createServerFn({ method: "POST" })
   });
 
 export const rematchCarromFn = createServerFn({ method: "POST" })
-  .inputValidator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {

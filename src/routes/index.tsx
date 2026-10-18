@@ -21,6 +21,7 @@ import { checkUsernameFn, createAccountFn } from "@/lib/shop.functions";
 import { joinGameFn, saveProfile } from "@/lib/game.functions";
 import { pageHead } from "@/lib/page-head";
 import { AVATARS, avatarEmoji } from "@/lib/game-types";
+import { Emoji, PlayerAvatar } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
 import {
   GAMES,
@@ -53,6 +54,7 @@ function FriendzyHubHome() {
   const [rejoinRoom, setRejoinRoom] = useState<string | null>(null);
   const [showBonusPopup, setShowBonusPopup] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [guestReady, setGuestReady] = useState(false);
 
   // Check for active room and bonus popup on mount
   useEffect(() => {
@@ -123,9 +125,9 @@ function FriendzyHubHome() {
     );
   }
 
-  // Logged-out state: show Welcome / Create Account / Log In screen
-  if (!signedIn) {
-    return <WelcomeAuthScreen onComplete={refresh} />;
+  // Show welcome auth only if neither cloud account nor local profile exists
+  if (!signedIn && !hasProfile && !guestReady) {
+    return <WelcomeAuthScreen onComplete={() => { setGuestReady(true); refresh(); }} />;
   }
 
   const filteredGames = filterGames(selectedCategory);
@@ -136,9 +138,7 @@ function FriendzyHubHome() {
         {/* 1. "Playing as" compact card */}
         <div className="play-panel flex items-center justify-between p-3.5 sm:p-4">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="avatar-puck text-3xl shrink-0">
-              {avatarEmoji(account?.equippedSkin ?? avatarId)}
-            </span>
+            <PlayerAvatar id={account?.equippedSkin ?? avatarId} size={42} className="shrink-0" />
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Playing as
@@ -273,15 +273,18 @@ function FriendzyHubHome() {
                   isLive ? "cursor-pointer" : "cursor-pointer opacity-85"
                 }`}
               >
-                {/* Top: Icon & Soon Badge */}
+                {/* Top: Sticker Icon & Badge */}
                 <div className="flex items-start justify-between w-full">
-                  <span
-                    className="text-4xl filter drop-shadow-sm select-none"
-                    role="img"
-                    aria-label={game.name}
-                  >
-                    {game.icon}
-                  </span>
+                  <div className={`grid size-14 shrink-0 place-items-center rounded-2xl border-2 border-border shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3 p-2 ${game.accentBg}`}>
+                    <img
+                      src={game.stickerUrl}
+                      alt={game.name}
+                      width={40}
+                      height={40}
+                      loading="lazy"
+                      className="size-10 select-none drop-shadow-sm"
+                    />
+                  </div>
                   {!isLive && (
                     <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase text-ink border-2 border-border shadow-xs">
                       SOON
@@ -497,11 +500,14 @@ function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
     <main className="game-table min-h-dvh flex items-center justify-center p-4 text-foreground">
       <div className="play-panel w-full max-w-sm p-6 sm:p-7 space-y-6 animate-rise shadow-panel">
         {/* Brand Header */}
-        <div className="text-center space-y-1">
-          <div className="mx-auto mb-2 text-4xl">🎲</div>
-          <h1 className="font-display text-3xl font-black tracking-tight text-primary">
-            [FRIENDZY]
-          </h1>
+        <div className="text-center space-y-2">
+          <img
+            src="/stickers/logo-friendzy.svg"
+            alt="FRIENDZY"
+            width={240}
+            height={94}
+            className="h-16 w-auto mx-auto drop-shadow-md select-none"
+          />
           <p className="text-xs font-bold text-muted-foreground">
             Multiplayer Party & Board Games Hub
           </p>
@@ -624,13 +630,13 @@ function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
                     key={av.id}
                     type="button"
                     onClick={() => setSelectedAvatar(av.id)}
-                    className={`aspect-square rounded-2xl flex flex-col items-center justify-center text-3xl transition-transform border-3 ${
+                    className={`aspect-square rounded-2xl flex flex-col items-center justify-center p-1.5 transition-transform border-3 ${
                       isSelected
                         ? "border-primary bg-primary/15 scale-110 shadow-sm"
                         : "border-border bg-card hover:bg-secondary"
                     }`}
                   >
-                    <span>{av.emoji}</span>
+                    <Emoji value={av.emoji} size={36} className="size-9 drop-shadow-xs" />
                   </button>
                 );
               })}
@@ -709,6 +715,20 @@ function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
             </Button>
           </form>
         )}
+
+        {/* Quick guest play link */}
+        <div className="pt-2 text-center border-t border-border/40">
+          <button
+            type="button"
+            onClick={() => {
+              save("Player", "fox");
+              onComplete();
+            }}
+            className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+          >
+            Or play immediately as Guest →
+          </button>
+        </div>
       </div>
     </main>
   );
@@ -803,13 +823,13 @@ function EditProfileModal({
                   key={av.id}
                   type="button"
                   onClick={() => setAvatar(av.id)}
-                  className={`aspect-square rounded-2xl flex items-center justify-center text-3xl border-3 ${
+                  className={`aspect-square rounded-2xl flex items-center justify-center p-1.5 border-3 transition-transform ${
                     avatar === av.id
                       ? "border-primary bg-primary/15 scale-105"
                       : "border-border bg-card hover:bg-secondary"
                   }`}
                 >
-                  <span>{av.emoji}</span>
+                  <Emoji value={av.emoji} size={36} className="size-9 drop-shadow-xs" />
                 </button>
               ))}
             </div>

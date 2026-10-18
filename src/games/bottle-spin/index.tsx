@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { RotateCw, CheckCircle, SkipForward, Flame, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { avatarEmoji, type GameState } from "@/lib/game-types";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
 import {
   spinBottleFn,
@@ -158,9 +159,7 @@ export function BottleSpinGame({ s, token, refresh, runAction }: BottleSpinGameP
                         : "bg-card border-border"
                   }`}
                 >
-                  <span role="img" aria-label={p.displayName}>
-                    {avatarEmoji(p.avatarId)}
-                  </span>
+                  <PlayerAvatar id={p.avatarId} size={30} />
                   {isChosen && <span className="absolute -top-2 -right-1 text-xs">⭐</span>}
                 </div>
                 <span className="mt-1 max-w-[64px] truncate text-[11px] font-bold text-foreground text-center">

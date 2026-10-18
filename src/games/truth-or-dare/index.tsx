@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Sparkles, Flame, CheckCircle, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { avatarEmoji, type GameState } from "@/lib/game-types";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
 import {
   chooseTruthOrDarePromptFn,
@@ -107,9 +108,7 @@ export function TruthOrDareGame({ s, token, refresh, runAction }: TruthOrDareGam
                       : "bg-card border-border"
                   }`}
                 >
-                  <span role="img" aria-label={p.displayName}>
-                    {avatarEmoji(p.avatarId)}
-                  </span>
+                  <PlayerAvatar id={p.avatarId} size={30} />
                   {isTurn && <span className="absolute -top-2 -right-1 text-xs">👑</span>}
                 </div>
                 <span className="mt-1 text-[11px] font-bold max-w-[60px] truncate text-center">

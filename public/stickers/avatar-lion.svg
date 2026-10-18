@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 50,12 C 60,12 68,16 74,22 C 84,24 90,32 90,44 C 92,54 88,64 82,72 C 82,82 72,90 60,92 C 54,92 50,90 46,92 C 34,90 24,82 24,72 C 18,64 14,54 16,44 C 16,32 22,24 32,22 C 38,16 44,12 50,12 Z" 
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+  <!-- Golden Mane -->
+  <circle cx="50" cy="54" r="34" fill="#f28e2b" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Mane Tufts -->
+  <circle cx="28" cy="34" r="10" fill="#f28e2b" stroke="#1b1b2f" stroke-width="2.5" />
+  <circle cx="72" cy="34" r="10" fill="#f28e2b" stroke="#1b1b2f" stroke-width="2.5" />
+  <!-- Lion Face -->
+  <circle cx="50" cy="56" r="22" fill="#f2b632" stroke="#1b1b2f" stroke-width="3" />
+  <!-- Crown on Lion Head -->
+  <polygon points="40,32 44,24 50,30 56,24 60,32" fill="#d93a2b" stroke="#1b1b2f" stroke-width="2" />
+  <!-- Eyes -->
+  <circle cx="43" cy="52" r="3.5" fill="#1b1b2f" />
+  <circle cx="57" cy="52" r="3.5" fill="#1b1b2f" />
+  <!-- Nose & Whiskers -->
+  <polygon points="47,60 53,60 50,64" fill="#9e1f14" />
+  <path d="M 45,66 Q 50,70 55,66" stroke="#1b1b2f" stroke-width="2" stroke-linecap="round" fill="none" />
+</svg>

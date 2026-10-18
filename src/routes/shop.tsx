@@ -6,6 +6,7 @@ import { GameLayout } from "@/components/game-layout";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "@/hooks/use-account";
 import { play } from "@/lib/sounds";
+import { Emoji } from "@/components/player-avatar";
 import { COIN_BUNDLES, SHOP_ITEMS, type ShopItem } from "@/lib/shop-items";
 import { buyItemFn, equipSkinFn } from "@/lib/shop.functions";
 
@@ -67,10 +68,25 @@ function ShopPage() {
           return (
             <div key={i.id} className="play-panel flex flex-col items-center gap-2 p-3 text-center">
               <div
-                className={kind === "skin" ? `role-card-mini ${i.id}` : "text-3xl"}
+                className={
+                  kind === "skin"
+                    ? `role-card-mini ${i.id} text-2xl flex items-center justify-center`
+                    : "flex items-center justify-center gap-1.5 py-1 min-h-[44px]"
+                }
                 aria-hidden="true"
               >
-                {i.preview}
+                {i.avatars ? (
+                  i.avatars.map((av) => (
+                    <Emoji
+                      key={av.id}
+                      value={av.emoji}
+                      size={32}
+                      className="size-8 drop-shadow-xs"
+                    />
+                  ))
+                ) : (
+                  <Emoji value={i.preview} size={32} className="size-8" />
+                )}
               </div>
               <p className="font-display text-xl leading-none">{i.name}</p>
               <p className="text-xs text-muted-foreground">{i.description}</p>
