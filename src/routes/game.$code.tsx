@@ -362,7 +362,15 @@ function TopBar({ s, token }: { s: GameState; token: string }) {
         to="/"
         className="flex items-center gap-1.5 font-display text-xl tracking-tight sm:text-2xl"
       >
-        <span className="text-xl"><img src="/stickers/mark-dice.svg" alt="" width={22} height={22} className="inline-block size-[22px] select-none drop-shadow-sm" /></span>
+        <span className="text-xl">
+          <img
+            src="/stickers/mark-dice.svg"
+            alt=""
+            width={22}
+            height={22}
+            className="inline-block size-[22px] select-none drop-shadow-sm"
+          />
+        </span>
         <span className="text-primary font-black">[FRIENDZY]</span>
       </Link>
       <div className="flex min-w-0 items-center gap-1 sm:gap-2">
@@ -440,7 +448,9 @@ function Lobby({ s, token, refresh }: { s: GameState; token: string; refresh: ()
       {/* Game Banner Header */}
       <div className="flex items-center justify-between rounded-2xl border-3 border-border bg-secondary/80 p-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className={`grid size-12 shrink-0 place-items-center rounded-2xl border-2 border-border shadow-sm p-1.5 ${game?.accentBg ?? "bg-muted"}`}>
+          <div
+            className={`grid size-12 shrink-0 place-items-center rounded-2xl border-2 border-border shadow-sm p-1.5 ${game?.accentBg ?? "bg-muted"}`}
+          >
             <img
               src={game?.stickerUrl ?? "/stickers/mark-dice.svg"}
               alt={game?.name ?? "Game"}

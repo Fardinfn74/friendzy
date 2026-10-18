@@ -61,7 +61,13 @@ function LudoGameHubPage() {
         <section className="play-panel space-y-4 p-6 shadow-panel border-4 border-amber-900/30 text-center relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-blue-400 border-2 border-border shadow-md mx-auto p-2">
-            <img src="/stickers/game-ludo.svg" alt="Ludo" width={54} height={54} className="size-13 select-none drop-shadow" />
+            <img
+              src="/stickers/game-ludo.svg"
+              alt="Ludo"
+              width={54}
+              height={54}
+              className="size-13 select-none drop-shadow"
+            />
           </div>
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">

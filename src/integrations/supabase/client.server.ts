@@ -32,8 +32,14 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+function cleanSupabaseUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  return url.replace(/\/rest\/v1\/?$/, "").replace(/\/+$/, "");
+}
+
 function createSupabaseAdminClient() {
-  const SUPABASE_URL = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
+  const rawUrl = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
+  const SUPABASE_URL = cleanSupabaseUrl(rawUrl);
   let SUPABASE_SERVICE_ROLE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"];
 
   if (!SUPABASE_SERVICE_ROLE_KEY) {

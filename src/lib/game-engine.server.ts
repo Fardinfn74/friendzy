@@ -88,8 +88,9 @@ function present(players: PlayerRow[]) {
 
 export async function resolveProfile(sessionToken: string) {
   // Use SECURITY DEFINER RPC to bypass RLS — works with publishable key too.
-  const { data, error } = await supabaseAdmin
-    .rpc("rpc_get_profile", { p_session_token: sessionToken });
+  const { data, error } = await supabaseAdmin.rpc("rpc_get_profile", {
+    p_session_token: sessionToken,
+  });
   if (error) fail(error.message);
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) fail("We couldn't find your player profile — pick a name again.");
@@ -104,12 +105,11 @@ export async function upsertProfile(input: {
   const displayName = input.displayName.trim().slice(0, 16);
   if (displayName.length < 2) fail("Your name needs at least 2 characters.");
   // Use SECURITY DEFINER RPC to bypass RLS — works with publishable key too.
-  const { data, error } = await supabaseAdmin
-    .rpc("rpc_upsert_profile", {
-      p_session_token: input.sessionToken,
-      p_display_name: displayName,
-      p_avatar_id: input.avatarId,
-    });
+  const { data, error } = await supabaseAdmin.rpc("rpc_upsert_profile", {
+    p_session_token: input.sessionToken,
+    p_display_name: displayName,
+    p_avatar_id: input.avatarId,
+  });
   if (error) fail(error.message);
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) fail("Profile save failed — please try again.");

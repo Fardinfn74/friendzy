@@ -29,27 +29,27 @@ export function Emoji({
 
 /** Colour accent per avatar — matches the retro toybox palette */
 const AVATAR_ACCENT: Record<string, string> = {
-  fox: "#f97316",      // orange
-  owl: "#8b5cf6",      // violet
-  cat: "#ec4899",      // pink
-  frog: "#22c55e",     // green
-  panda: "#94a3b8",    // slate
-  octopus: "#6366f1",  // indigo
-  penguin: "#3b82f6",  // blue
-  bee: "#eab308",      // yellow
-  shark: "#06b6d4",    // cyan
-  dragon: "#ef4444",   // red
-  raccoon: "#78716c",  // stone
-  unicorn: "#d946ef",  // fuchsia
-  robot: "#64748b",    // steel
-  ghost: "#a3e635",    // lime
-  alien: "#10b981",    // emerald
-  lion: "#f59e0b",     // amber
-  crown: "#f2b632",    // gold
-  skull: "#1e293b",    // dark
-  wizard: "#7c3aed",   // purple
-  rocket: "#e11d48",   // rose-red
-  pumpkin: "#ea580c",  // orange-600
+  fox: "#f97316", // orange
+  owl: "#8b5cf6", // violet
+  cat: "#ec4899", // pink
+  frog: "#22c55e", // green
+  panda: "#94a3b8", // slate
+  octopus: "#6366f1", // indigo
+  penguin: "#3b82f6", // blue
+  bee: "#eab308", // yellow
+  shark: "#06b6d4", // cyan
+  dragon: "#ef4444", // red
+  raccoon: "#78716c", // stone
+  unicorn: "#d946ef", // fuchsia
+  robot: "#64748b", // steel
+  ghost: "#a3e635", // lime
+  alien: "#10b981", // emerald
+  lion: "#f59e0b", // amber
+  crown: "#f2b632", // gold
+  skull: "#1e293b", // dark
+  wizard: "#7c3aed", // purple
+  rocket: "#e11d48", // rose-red
+  pumpkin: "#ea580c", // orange-600
   unicorn2: "#d946ef", // fuchsia
 };
 

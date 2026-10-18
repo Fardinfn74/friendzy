@@ -60,7 +60,13 @@ function ImposterGameHubPage() {
         {/* Big Game Header */}
         <div className="text-center py-4">
           <div className="mx-auto mb-4 grid size-24 place-items-center rounded-3xl border-3 border-border bg-amber-400 text-ink shadow-panel transform -rotate-3 p-3">
-            <img src="/stickers/game-imposter.svg" alt="Imposter" width={60} height={60} className="size-15 select-none drop-shadow" />
+            <img
+              src="/stickers/game-imposter.svg"
+              alt="Imposter"
+              width={60}
+              height={60}
+              className="size-15 select-none drop-shadow"
+            />
           </div>
           <h1 className="font-display text-4xl tracking-tight text-foreground">Imposter</h1>
           <p className="mt-1 font-semibold text-sm text-muted-foreground">

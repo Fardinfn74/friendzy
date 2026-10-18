@@ -17,7 +17,7 @@ import {
 import { useAccount, usernameEmail } from "@/hooks/use-account";
 import { usePlayer } from "@/hooks/use-player";
 import { supabase } from "@/integrations/supabase/client";
-import { checkUsernameFn, createAccountFn } from "@/lib/shop.functions";
+import { checkUsernameFn, createAccountFn, registerAccountFn } from "@/lib/shop.functions";
 import { joinGameFn, saveProfile } from "@/lib/game.functions";
 import { pageHead } from "@/lib/page-head";
 import { AVATARS, avatarEmoji } from "@/lib/game-types";
@@ -127,7 +127,14 @@ function FriendzyHubHome() {
 
   // Show welcome auth only if neither cloud account nor local profile exists
   if (!signedIn && !hasProfile && !guestReady) {
-    return <WelcomeAuthScreen onComplete={() => { setGuestReady(true); refresh(); }} />;
+    return (
+      <WelcomeAuthScreen
+        onComplete={() => {
+          setGuestReady(true);
+          refresh();
+        }}
+      />
+    );
   }
 
   const filteredGames = filterGames(selectedCategory);
@@ -275,7 +282,9 @@ function FriendzyHubHome() {
               >
                 {/* Top: Sticker Icon & Badge */}
                 <div className="flex items-start justify-between w-full">
-                  <div className={`grid size-14 shrink-0 place-items-center rounded-2xl border-2 border-border shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3 p-2 ${game.accentBg}`}>
+                  <div
+                    className={`grid size-14 shrink-0 place-items-center rounded-2xl border-2 border-border shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3 p-2 ${game.accentBg}`}
+                  >
                     <img
                       src={game.stickerUrl}
                       alt={game.name}
@@ -379,7 +388,7 @@ function FriendzyHubHome() {
  */
 function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
   const check = useServerFn(checkUsernameFn);
-  const create = useServerFn(createAccountFn);
+  const register = useServerFn(registerAccountFn);
   const persist = useServerFn(saveProfile);
   const { player, save } = usePlayer();
 
@@ -428,24 +437,29 @@ function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
     setBusy(true);
     const u = username.trim().toLowerCase();
     try {
-      const { data, error: signUpErr } = await supabase.auth.signUp({
-        email: usernameEmail(u),
-        password,
-        options: {
-          data: {
-            display_name: name.trim(),
-            avatar_id: selectedAvatar,
-          },
+      // 1. Create account server-side via Supabase Admin (bypasses email delivery / confirmation limits)
+      const reg = await register({
+        data: {
+          username: u,
+          displayName: name.trim(),
+          password,
+          avatarId: selectedAvatar,
         },
       });
-      if (signUpErr) {
-        throw new Error(
-          signUpErr.message.includes("registered") ? "That username is taken." : signUpErr.message,
-        );
+
+      if (!reg.ok) {
+        throw new Error(reg.error);
       }
 
-      const r = await create({ data: { username: u, displayName: name.trim() } });
-      if ("error" in r) throw new Error(r.error);
+      // 2. Sign in directly on the client to obtain session token
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: usernameEmail(u),
+        password,
+      });
+
+      if (signInErr) {
+        throw new Error(signInErr.message);
+      }
 
       if (player) {
         await persist({

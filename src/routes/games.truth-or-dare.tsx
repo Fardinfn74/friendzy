@@ -88,8 +88,8 @@ function TruthOrDareGameHubPage() {
               <div>
                 <p className="font-bold text-foreground">1. Truth</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Choose Truth and answer an embarrassing question honestly — no lies allowed or
-                  you lose a life!
+                  Choose Truth and answer an embarrassing question honestly — no lies allowed or you
+                  lose a life!
                 </p>
               </div>
             </div>

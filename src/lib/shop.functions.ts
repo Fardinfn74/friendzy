@@ -22,11 +22,73 @@ export const checkUsernameFn = createServerFn({ method: "POST" })
     return { available: !row };
   });
 
+export const registerAccountFn = createServerFn({ method: "POST" })
+  .validator((d) =>
+    z
+      .object({
+        username,
+        displayName: z.string().trim().min(2).max(20),
+        password: z.string().min(6),
+        avatarId: z.string().default("fox"),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1. Check if username is already taken in player_accounts
+    const { data: existing } = await supabaseAdmin
+      .from("player_accounts")
+      .select("user_id")
+      .eq("username", data.username)
+      .maybeSingle();
+
+    if (existing) {
+      return { ok: false as const, error: "That username is taken." };
+    }
+
+    const email = `${data.username}@players.imposta.app`;
+
+    // 2. Create user with admin client (auto-confirms email and avoids SMTP rate limit blocks)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: {
+        display_name: data.displayName,
+        avatar_id: data.avatarId,
+      },
+    });
+
+    if (authError || !authData?.user) {
+      return {
+        ok: false as const,
+        error: authError?.message.includes("already registered")
+          ? "That username is taken."
+          : (authError?.message ?? "Registration failed."),
+      };
+    }
+
+    // 3. Insert record in player_accounts
+    const { error: dbError } = await supabaseAdmin.from("player_accounts").insert({
+      user_id: authData.user.id,
+      username: data.username,
+      display_name: data.displayName,
+    });
+
+    if (dbError && !dbError.message.includes("player_accounts_pkey")) {
+      return {
+        ok: false as const,
+        error: dbError.message.includes("username") ? "That username is taken." : dbError.message,
+      };
+    }
+
+    return { ok: true as const, userId: authData.user.id };
+  });
+
 export const createAccountFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((d) =>
-    z.object({ username, displayName: z.string().trim().min(2).max(20) }).parse(d),
-  )
+  .validator((d) => z.object({ username, displayName: z.string().trim().min(2).max(20) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("player_accounts").insert({

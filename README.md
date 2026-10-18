@@ -45,12 +45,14 @@ A playful, retro toybox style multiplayer game hub featuring classic board games
 ### Setup
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Configure environment variables:
    Copy `.env.example` to `.env` and fill in your Supabase keys:
+
    ```env
    VITE_SUPABASE_URL="https://your-project.supabase.co"
    VITE_SUPABASE_PUBLISHABLE_KEY="your-anon-key"
@@ -60,6 +62,7 @@ A playful, retro toybox style multiplayer game hub featuring classic board games
    ```
 
 3. Run development server:
+
    ```bash
    npm run dev
    ```

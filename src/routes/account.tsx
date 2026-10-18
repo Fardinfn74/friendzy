@@ -87,7 +87,11 @@ function AccountPage() {
           <div className="space-y-4">
             <section className="play-panel p-6 text-center space-y-4">
               <div className="flex justify-center mx-auto">
-                <PlayerAvatar id={account.equippedSkin ?? avatarId} size={76} className="shadow-md" />
+                <PlayerAvatar
+                  id={account.equippedSkin ?? avatarId}
+                  size={76}
+                  className="shadow-md"
+                />
               </div>
               <div>
                 <h2 className="font-display text-3xl font-black">{account.displayName}</h2>
