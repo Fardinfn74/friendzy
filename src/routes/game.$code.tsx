@@ -4,6 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { RuleBook, SoundToggle } from "@/components/game-extras";
 import { play } from "@/lib/sounds";
@@ -105,7 +106,8 @@ function GamePage() {
       if (!player) throw new Error("No player session");
       return getState({ data: { sessionToken: player.sessionToken, code } });
     },
-    enabled: Boolean(ready && player && (joined || !joinError)),
+    // Wait until our seat exists, otherwise the first poll races the join call.
+    enabled: Boolean(ready && player && joined),
     refetchInterval: (query) => {
       const s = query.state.data as GameState | undefined;
       if (!s) return 1000;
@@ -116,6 +118,16 @@ function GamePage() {
   });
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["game", code] });
+
+  // One shared action runner: show the server's message instead of failing silently.
+  const runAction = async (fn: () => Promise<unknown>, after?: () => void) => {
+    try {
+      await fn();
+      after?.();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    }
+  };
   const prev = useRef<{ status?: string; myTurn?: boolean; turn?: string | null }>({});
   const d = q.data;
 
@@ -214,112 +226,56 @@ function GamePage() {
           s={s}
           token={token}
           refresh={refresh}
-          runAction={async (fn, after) => {
-            try {
-              await fn();
-              after?.();
-            } catch {
-              /* ignore */
-            }
-          }}
+          runAction={runAction}
         />
       ) : s.gameType === "number-guess" ? (
         <NumberGuessGame
           s={s}
           token={token}
           refresh={refresh}
-          runAction={async (fn, after) => {
-            try {
-              await fn();
-              after?.();
-            } catch {
-              /* ignore */
-            }
-          }}
+          runAction={runAction}
         />
       ) : s.gameType === "bottle-spin" ? (
         <BottleSpinGame
           s={s}
           token={token}
           refresh={refresh}
-          runAction={async (fn, after) => {
-            try {
-              await fn();
-              after?.();
-            } catch {
-              /* ignore */
-            }
-          }}
+          runAction={runAction}
         />
       ) : s.gameType === "truth-or-dare" ? (
         <TruthOrDareGame
           s={s}
           token={token}
           refresh={refresh}
-          runAction={async (fn, after) => {
-            try {
-              await fn();
-              after?.();
-            } catch {
-              /* ignore */
-            }
-          }}
+          runAction={runAction}
         />
       ) : s.gameType === "chess" ? (
         <ChessGame
           s={s}
           token={token}
           refresh={refresh}
-          runAction={async (fn, after) => {
-            try {
-              await fn();
-              after?.();
-            } catch {
-              /* ignore */
-            }
-          }}
+          runAction={runAction}
         />
       ) : s.gameType === "ludo" ? (
         <LudoGame
           s={s}
           token={token}
           refresh={refresh}
-          runAction={async (fn, after) => {
-            try {
-              await fn();
-              after?.();
-            } catch {
-              /* ignore */
-            }
-          }}
+          runAction={runAction}
         />
       ) : s.gameType === "carrom" ? (
         <CarromGame
           s={s}
           token={token}
           refresh={refresh}
-          runAction={async (fn, after) => {
-            try {
-              await fn();
-              after?.();
-            } catch {
-              /* ignore */
-            }
-          }}
+          runAction={runAction}
         />
       ) : (
         <ImposterGame
           s={s}
           token={token}
           refresh={refresh}
-          runAction={async (fn, after) => {
-            try {
-              await fn();
-              after?.();
-            } catch {
-              /* ignore */
-            }
-          }}
+          runAction={runAction}
         />
       )}
     </Shell>

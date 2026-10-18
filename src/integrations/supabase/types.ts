@@ -379,6 +379,18 @@ export type Database = {
         Args: { _item: string; _price: number; _user: string };
         Returns: number;
       };
+      rpc_get_profile: {
+        Args: { p_session_token: string };
+        Returns: { id: string; display_name: string; avatar_id: string }[];
+      };
+      rpc_touch_profile: {
+        Args: { p_profile_id: string };
+        Returns: undefined;
+      };
+      rpc_upsert_profile: {
+        Args: { p_avatar_id: string; p_display_name: string; p_session_token: string };
+        Returns: { id: string; display_name: string; avatar_id: string }[];
+      };
     };
     Enums: {
       [_ in never]: never;
