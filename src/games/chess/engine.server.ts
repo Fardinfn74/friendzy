@@ -214,6 +214,19 @@ export async function makeChessMove(
 
   const chess = new Chess(data.fen);
 
+  // A player whose clock already ran out can't still move (nobody may have polled yet).
+  if (data.settings.timedMode && data.turnStartedAt) {
+    const remainingMs = myColor === "w" ? data.whiteTimeMs : data.blackTimeMs;
+    if (Date.now() - data.turnStartedAt >= remainingMs) {
+      data.phase = "ended";
+      data.result = myColor === "w" ? "black" : "white";
+      data.resultReason = "timeout";
+      data.winnerId = myColor === "w" ? data.blackProfileId : data.whiteProfileId;
+      await saveChessData(game.id, data);
+      throw new Error("You ran out of time.");
+    }
+  }
+
   // Deduct clock time and apply increment
   const now = Date.now();
   if (data.settings.timedMode && data.turnStartedAt) {
@@ -322,4 +335,18 @@ export async function requestChessRematch(game: AnyGame, players: AnyPlayer[], p
     .eq("id", game.id);
 
   return { waiting: false };
+}
+
+/** The other player left mid-game: the player who stayed wins by resignation. */
+export async function handleChessPlayerLeft(game: AnyGame, leaverId: string) {
+  const data = parseChessData(game);
+  if (data.phase !== "playing") return;
+  const leaverIsWhite = data.whiteProfileId === leaverId;
+  const leaverIsBlack = data.blackProfileId === leaverId;
+  if (!leaverIsWhite && !leaverIsBlack) return;
+  data.phase = "ended";
+  data.result = leaverIsWhite ? "black" : "white";
+  data.resultReason = "resignation";
+  data.winnerId = leaverIsWhite ? data.blackProfileId : data.whiteProfileId;
+  await saveChessData(game.id, data);
 }

@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "include": ["./*.ts"],
+  "compilerOptions": {
+    "baseUrl": "..",
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@/integrations/supabase/client.server": ["sim/mock-supabase.ts"],
+      "@/*": ["src/*"]
+    }
+  }
+}

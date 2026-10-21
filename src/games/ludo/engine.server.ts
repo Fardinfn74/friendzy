@@ -356,3 +356,40 @@ export async function syncLudoState(
 export async function rematchLudo(game: AnyGame, players: AnyPlayer[]) {
   await startLudoMatch(game, players);
 }
+
+/** A player left: pass the turn on if it was theirs, remove their tokens, end the game if <2 remain. */
+export async function handleLudoPlayerLeft(game: AnyGame, leaverId: string) {
+  const data = parseLudoData(game);
+  if (data.phase === "ended") return;
+  const idx = data.players.findIndex((p) => p.profileId === leaverId);
+  if (idx === -1) return;
+  const leaver = data.players[idx]!;
+  if (leaver.rank !== null) return; // already finished: nothing to settle
+
+  if (data.currentTurnColor === leaver.color) {
+    for (let i = 1; i < data.players.length; i++) {
+      const next = data.players[(idx + i) % data.players.length]!;
+      if (next.rank === null) {
+        data.currentTurnColor = next.color;
+        break;
+      }
+    }
+    data.phase = "rolling";
+    data.diceValue = null;
+    data.consecutiveSixes = 0;
+  }
+  data.players.splice(idx, 1);
+  data.lastActionText = `${leaver.color.toUpperCase()} left the game.`;
+
+  const unfinished = data.players.filter((p) => p.rank === null);
+  if (unfinished.length <= 1) {
+    data.phase = "ended";
+    const last = unfinished[0];
+    if (last) {
+      last.rank = data.players.filter((p) => p.rank !== null).length + 1;
+      data.ranking.push(last.profileId);
+      if (!data.winnerId) data.winnerId = last.profileId;
+    }
+  }
+  await saveLudoData(game.id, data);
+}

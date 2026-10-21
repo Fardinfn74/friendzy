@@ -216,7 +216,7 @@ export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
     setTimeout(() => {
       void runAction(
         async () => {
-          await rollLudoDiceFn({
+          return await rollLudoDiceFn({
             data: { sessionToken: token, code: s.code },
           });
         },
@@ -235,7 +235,7 @@ export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
     play("clue");
     void runAction(
       async () => {
-        await moveLudoTokenFn({
+        return await moveLudoTokenFn({
           data: {
             sessionToken: token,
             code: s.code,
@@ -482,7 +482,7 @@ export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
               onClick={() => {
                 void runAction(
                   async () => {
-                    await rematchLudoFn({
+                    return await rematchLudoFn({
                       data: { sessionToken: token, code: s.code },
                     });
                   },

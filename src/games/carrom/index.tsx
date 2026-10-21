@@ -65,7 +65,7 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
 
       void runAction(
         async () => {
-          await submitCarromShotResultFn({
+          return await submitCarromShotResultFn({
             data: {
               sessionToken: token,
               code: s.code,
@@ -607,7 +607,7 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
               onClick={() => {
                 void runAction(
                   async () => {
-                    await rematchCarromFn({
+                    return await rematchCarromFn({
                       data: { sessionToken: token, code: s.code },
                     });
                   },

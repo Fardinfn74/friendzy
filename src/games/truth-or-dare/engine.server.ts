@@ -257,3 +257,23 @@ export async function skipTruthOrDare(game: AnyGame, profileId: string) {
   await saveTruthOrDareData(game.id, data);
   return { prompt: freshPrompt };
 }
+
+/** A player left: take them out of the turn order and never leave the game waiting on them. */
+export async function handleTruthOrDarePlayerLeft(game: AnyGame, leaverId: string) {
+  const data = parseTruthOrDareData(game);
+  const idx = data.turnOrder.indexOf(leaverId);
+  if (idx === -1) return;
+  const wasCurrent = data.currentPlayerId === leaverId;
+  data.turnOrder.splice(idx, 1);
+  if (data.turnOrder.length === 0) return;
+  if (wasCurrent) {
+    data.turnIndex = idx % data.turnOrder.length;
+    data.currentPlayerId = data.turnOrder[data.turnIndex]!;
+    data.phase = "choosing_type";
+    data.promptType = null;
+    data.currentPrompt = null;
+  } else {
+    data.turnIndex = Math.max(0, data.turnOrder.indexOf(data.currentPlayerId));
+  }
+  await saveTruthOrDareData(game.id, data);
+}

@@ -357,3 +357,12 @@ export async function syncWordDuelState(
     matchWinnerId: data.matchWinnerId,
   };
 }
+
+/** The other player left mid-match: the player who stayed wins the match. */
+export async function handleWordDuelPlayerLeft(game: AnyGame, remainingIds: string[]) {
+  const data = parseWordDuelData(game);
+  if (data.phase === "match_ended") return;
+  data.phase = "match_ended";
+  data.matchWinnerId = remainingIds[0] ?? null;
+  await saveWordDuelData(game.id, data);
+}

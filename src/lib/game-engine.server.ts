@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { withRoomLock } from "./room-lock.server";
 import {
   HINT_SECONDS,
   MAX_PLAYERS,
@@ -212,7 +213,7 @@ export async function joinGame(sessionToken: string, code: string) {
   return { code: game.code };
 }
 
-export async function updateSettings(
+async function updateSettingsImpl(
   sessionToken: string,
   code: string,
   settings: {
@@ -416,7 +417,7 @@ export async function updateSettings(
   await patchGame(game.id, patch);
 }
 
-export async function kickPlayer(sessionToken: string, code: string, targetProfileId: string) {
+async function kickPlayerImpl(sessionToken: string, code: string, targetProfileId: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   if (game.host_id !== profile.id) fail("Only the host can remove players.");
@@ -441,7 +442,7 @@ export async function setReady(sessionToken: string, code: string, ready: boolea
   if (error) fail(error.message);
 }
 
-export async function leaveGame(sessionToken: string, code: string) {
+async function leaveGameImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const players = await loadPlayers(game.id);
@@ -470,13 +471,13 @@ export async function leaveGame(sessionToken: string, code: string) {
   }
   if (game.status !== "lobby" && game.status !== "ended") {
     const fresh = await loadGameByCode(code);
-    await settleAfterRosterChange(fresh, await loadPlayers(game.id));
+    await settleAfterRosterChange(fresh, await loadPlayers(game.id), profile.id);
   }
 }
 
 /* -------------------------------------------------------------- the game --- */
 
-export async function startGame(sessionToken: string, code: string) {
+async function startGameImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   if (game.host_id !== profile.id) fail("Only the host can start the game.");
@@ -631,7 +632,7 @@ export async function assertHostInLobby(sessionToken: string, code: string) {
   return game.difficulty;
 }
 
-export async function confirmCardSeen(sessionToken: string, code: string) {
+async function confirmCardSeenImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   if (game.status !== "reveal") return;
@@ -693,7 +694,7 @@ async function advanceTurn(game: GameRow, round: number) {
   });
 }
 
-export async function submitHint(sessionToken: string, code: string, message: string) {
+async function submitHintImpl(sessionToken: string, code: string, message: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   if (game.status !== "hint") fail("It's not clue time right now.");
@@ -716,7 +717,7 @@ export async function submitHint(sessionToken: string, code: string, message: st
   await advanceTurn(game, game.round_number);
 }
 
-export async function submitVote(
+async function submitVoteImpl(
   sessionToken: string,
   code: string,
   input: { targetIds: string[]; replay: boolean },
@@ -875,7 +876,47 @@ async function tallyVotes(game: GameRow) {
   });
 }
 
-async function settleAfterRosterChange(game: GameRow, players: PlayerRow[]) {
+/** Mini-games have no imposters: when someone leaves, let that game decide what happens next. */
+async function settleOtherGameAfterLeave(game: GameRow, players: PlayerRow[], leaverId?: string) {
+  const remaining = present(players);
+  if (remaining.length === 0) {
+    await patchGame(game.id, { status: "ended", pending_status: null });
+    return;
+  }
+  if (!leaverId) return;
+  const ids = remaining.map((p) => p.profile_id);
+  switch (game.game_type) {
+    case "chess":
+      await (await import("@/games/chess/engine.server")).handleChessPlayerLeft(game, leaverId);
+      break;
+    case "word-duel":
+      await (await import("@/games/word-duel/engine.server")).handleWordDuelPlayerLeft(game, ids);
+      break;
+    case "number-guess":
+      await (await import("@/games/number-guess/engine.server")).handleNumberGuessPlayerLeft(game, leaverId, ids);
+      break;
+    case "bottle-spin":
+      await (await import("@/games/bottle-spin/engine.server")).handleBottleSpinPlayerLeft(game, leaverId, ids);
+      break;
+    case "truth-or-dare":
+      await (await import("@/games/truth-or-dare/engine.server")).handleTruthOrDarePlayerLeft(game, leaverId);
+      break;
+    case "ludo":
+      await (await import("@/games/ludo/engine.server")).handleLudoPlayerLeft(game, leaverId);
+      break;
+    case "carrom":
+      await (await import("@/games/carrom/engine.server")).handleCarromPlayerLeft(game, leaverId);
+      break;
+  }
+  // Nobody left to play against: close the room.
+  if (ids.length < 2) await patchGame(game.id, { status: "ended", winner: null, pending_status: null });
+}
+
+async function settleAfterRosterChange(game: GameRow, players: PlayerRow[], leaverId?: string) {
+  if ((game.game_type || "imposter") !== "imposter") {
+    await settleOtherGameAfterLeave(game, players, leaverId);
+    return;
+  }
   const living = alive(players);
   if (living.length === 0) {
     await patchGame(game.id, { status: "ended", pending_status: null });
@@ -889,6 +930,11 @@ async function settleAfterRosterChange(game: GameRow, players: PlayerRow[]) {
   }
   if (impostersAlive >= crewAlive) {
     await patchGame(game.id, { status: "ended", winner: "imposters", pending_status: null });
+    return;
+  }
+  // Card reveal: if the only players still looking at their card left, don't freeze the room.
+  if (game.status === "reveal" && living.every((p) => p.card_seen)) {
+    await beginHintRound(game, players, game.round_number);
     return;
   }
   if (
@@ -947,7 +993,7 @@ export async function advanceIfExpired(code: string) {
   }
 }
 
-export async function playAgain(sessionToken: string, code: string) {
+async function playAgainImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   if (game.host_id !== profile.id) fail("Only the host can start a new round.");
@@ -1146,7 +1192,7 @@ export async function getState(sessionToken: string, code: string): Promise<Game
 
 /* ----------------------------------------------------------- word duel actions --- */
 
-export async function sendWordDuelLetter(sessionToken: string, code: string, letter: string) {
+async function sendWordDuelLetterImpl(sessionToken: string, code: string, letter: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const players = present(await loadPlayers(game.id));
@@ -1154,21 +1200,21 @@ export async function sendWordDuelLetter(sessionToken: string, code: string, let
   await wordDuelEngine.sendWordDuelLetter(game, players, profile.id, letter);
 }
 
-export async function submitWordDuelWord(sessionToken: string, code: string, word: string) {
+async function submitWordDuelWordImpl(sessionToken: string, code: string, word: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const wordDuelEngine = await import("@/games/word-duel/engine.server");
   return await wordDuelEngine.submitWordDuelWord(game, profile.id, word);
 }
 
-export async function advanceWordDuelRound(sessionToken: string, code: string) {
+async function advanceWordDuelRoundImpl(sessionToken: string, code: string) {
   await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const wordDuelEngine = await import("@/games/word-duel/engine.server");
   await wordDuelEngine.advanceWordDuelRound(game);
 }
 
-export async function rematchWordDuel(sessionToken: string, code: string) {
+async function rematchWordDuelImpl(sessionToken: string, code: string) {
   await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const players = present(await loadPlayers(game.id));
@@ -1178,7 +1224,7 @@ export async function rematchWordDuel(sessionToken: string, code: string) {
 
 /* ----------------------------------------------------------- number guess actions --- */
 
-export async function lockNumberGuessSecret(sessionToken: string, code: string, number: number) {
+async function lockNumberGuessSecretImpl(sessionToken: string, code: string, number: number) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const players = present(await loadPlayers(game.id));
@@ -1186,7 +1232,7 @@ export async function lockNumberGuessSecret(sessionToken: string, code: string, 
   return await ngEngine.lockNumberGuessSecret(game, players, profile.id, number);
 }
 
-export async function submitNumberGuess(
+async function submitNumberGuessImpl(
   sessionToken: string,
   code: string,
   targetId: string,
@@ -1198,14 +1244,14 @@ export async function submitNumberGuess(
   return await ngEngine.submitNumberGuess(game, profile.id, targetId, guess);
 }
 
-export async function advanceNumberGuessRound(sessionToken: string, code: string) {
+async function advanceNumberGuessRoundImpl(sessionToken: string, code: string) {
   await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const ngEngine = await import("@/games/number-guess/engine.server");
   return await ngEngine.advanceNumberGuessRound(game);
 }
 
-export async function rematchNumberGuess(sessionToken: string, code: string) {
+async function rematchNumberGuessImpl(sessionToken: string, code: string) {
   await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const players = present(await loadPlayers(game.id));
@@ -1215,7 +1261,7 @@ export async function rematchNumberGuess(sessionToken: string, code: string) {
 
 /* ----------------------------------------------------------- bottle spin actions --- */
 
-export async function spinBottle(sessionToken: string, code: string) {
+async function spinBottleImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const players = present(await loadPlayers(game.id));
@@ -1223,7 +1269,7 @@ export async function spinBottle(sessionToken: string, code: string) {
   return await bsEngine.spinBottle(game, players, profile.id);
 }
 
-export async function chooseBottlePrompt(
+async function chooseBottlePromptImpl(
   sessionToken: string,
   code: string,
   type: "truth" | "dare",
@@ -1234,14 +1280,14 @@ export async function chooseBottlePrompt(
   return await bsEngine.chooseBottlePromptType(game, profile.id, type);
 }
 
-export async function completeBottlePrompt(sessionToken: string, code: string) {
+async function completeBottlePromptImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const bsEngine = await import("@/games/bottle-spin/engine.server");
   return await bsEngine.completeBottlePrompt(game, profile.id);
 }
 
-export async function skipBottlePrompt(sessionToken: string, code: string) {
+async function skipBottlePromptImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const bsEngine = await import("@/games/bottle-spin/engine.server");
@@ -1250,7 +1296,7 @@ export async function skipBottlePrompt(sessionToken: string, code: string) {
 
 /* -------------------------------------------------------- truth or dare actions --- */
 
-export async function chooseTruthOrDarePrompt(
+async function chooseTruthOrDarePromptImpl(
   sessionToken: string,
   code: string,
   type: "truth" | "dare",
@@ -1261,14 +1307,14 @@ export async function chooseTruthOrDarePrompt(
   return await todEngine.chooseTruthOrDareType(game, profile.id, type);
 }
 
-export async function completeTruthOrDarePrompt(sessionToken: string, code: string) {
+async function completeTruthOrDarePromptImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const todEngine = await import("@/games/truth-or-dare/engine.server");
   return await todEngine.completeTruthOrDare(game, profile.id);
 }
 
-export async function skipTruthOrDarePrompt(sessionToken: string, code: string) {
+async function skipTruthOrDarePromptImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const todEngine = await import("@/games/truth-or-dare/engine.server");
@@ -1277,7 +1323,7 @@ export async function skipTruthOrDarePrompt(sessionToken: string, code: string) 
 
 /* ---------------------------------------------------------------- chess actions --- */
 
-export async function makeChessMove(
+async function makeChessMoveImpl(
   sessionToken: string,
   code: string,
   from: string,
@@ -1290,14 +1336,14 @@ export async function makeChessMove(
   return await chessEngine.makeChessMove(game, profile.id, from, to, promotion);
 }
 
-export async function resignChess(sessionToken: string, code: string) {
+async function resignChessImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const chessEngine = await import("@/games/chess/engine.server");
   await chessEngine.resignChess(game, profile.id);
 }
 
-export async function rematchChess(sessionToken: string, code: string) {
+async function rematchChessImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const players = await loadPlayers(game.id);
@@ -1307,21 +1353,21 @@ export async function rematchChess(sessionToken: string, code: string) {
 
 /* ----------------------------------------------------------------- ludo actions --- */
 
-export async function rollLudoDice(sessionToken: string, code: string) {
+async function rollLudoDiceImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const ludoEngine = await import("@/games/ludo/engine.server");
   return await ludoEngine.rollLudoDice(game, profile.id);
 }
 
-export async function moveLudoToken(sessionToken: string, code: string, tokenId: number) {
+async function moveLudoTokenImpl(sessionToken: string, code: string, tokenId: number) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const ludoEngine = await import("@/games/ludo/engine.server");
   return await ludoEngine.moveLudoToken(game, profile.id, tokenId);
 }
 
-export async function rematchLudo(sessionToken: string, code: string) {
+async function rematchLudoImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   if (game.host_id !== profile.id) fail("Only host can restart Ludo match.");
@@ -1332,7 +1378,7 @@ export async function rematchLudo(sessionToken: string, code: string) {
 
 /* --------------------------------------------------------------- carrom actions --- */
 
-export async function submitCarromShotResult(
+async function submitCarromShotResultImpl(
   sessionToken: string,
   code: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1345,7 +1391,7 @@ export async function submitCarromShotResult(
   return await carromEngine.submitCarromShotResult(game, profile.id, updatedCoins, strikerFoul);
 }
 
-export async function rematchCarrom(sessionToken: string, code: string) {
+async function rematchCarromImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   if (game.host_id !== profile.id) fail("Only host can restart Carrom match.");
@@ -1353,3 +1399,43 @@ export async function rematchCarrom(sessionToken: string, code: string) {
   const carromEngine = await import("@/games/carrom/engine.server");
   await carromEngine.rematchCarrom(game, players);
 }
+
+
+/* ------------------------------------------------- per-room serialised actions --- */
+// Every state-changing action runs one-at-a-time per room (see room-lock.server.ts).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function locked<A extends [string, string, ...any[]], R>(fn: (...args: A) => Promise<R>) {
+  return (...args: A): Promise<R> => withRoomLock(args[1], () => fn(...args));
+}
+
+export const startGame = locked(startGameImpl);
+export const confirmCardSeen = locked(confirmCardSeenImpl);
+export const submitHint = locked(submitHintImpl);
+export const submitVote = locked(submitVoteImpl);
+export const playAgain = locked(playAgainImpl);
+export const leaveGame = locked(leaveGameImpl);
+export const kickPlayer = locked(kickPlayerImpl);
+export const updateSettings = locked(updateSettingsImpl);
+export const sendWordDuelLetter = locked(sendWordDuelLetterImpl);
+export const submitWordDuelWord = locked(submitWordDuelWordImpl);
+export const advanceWordDuelRound = locked(advanceWordDuelRoundImpl);
+export const rematchWordDuel = locked(rematchWordDuelImpl);
+export const lockNumberGuessSecret = locked(lockNumberGuessSecretImpl);
+export const submitNumberGuess = locked(submitNumberGuessImpl);
+export const advanceNumberGuessRound = locked(advanceNumberGuessRoundImpl);
+export const rematchNumberGuess = locked(rematchNumberGuessImpl);
+export const spinBottle = locked(spinBottleImpl);
+export const chooseBottlePrompt = locked(chooseBottlePromptImpl);
+export const completeBottlePrompt = locked(completeBottlePromptImpl);
+export const skipBottlePrompt = locked(skipBottlePromptImpl);
+export const chooseTruthOrDarePrompt = locked(chooseTruthOrDarePromptImpl);
+export const completeTruthOrDarePrompt = locked(completeTruthOrDarePromptImpl);
+export const skipTruthOrDarePrompt = locked(skipTruthOrDarePromptImpl);
+export const makeChessMove = locked(makeChessMoveImpl);
+export const resignChess = locked(resignChessImpl);
+export const rematchChess = locked(rematchChessImpl);
+export const rollLudoDice = locked(rollLudoDiceImpl);
+export const moveLudoToken = locked(moveLudoTokenImpl);
+export const rematchLudo = locked(rematchLudoImpl);
+export const submitCarromShotResult = locked(submitCarromShotResultImpl);
+export const rematchCarrom = locked(rematchCarromImpl);

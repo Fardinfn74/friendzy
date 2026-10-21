@@ -242,7 +242,7 @@ export function BottleSpinGame({ s, token, refresh, runAction }: BottleSpinGameP
               onClick={() =>
                 runAction(async () => {
                   play("click");
-                  await spinBottleFn({
+                  return await spinBottleFn({
                     data: {
                       sessionToken: token,
                       code: s.code,
@@ -279,7 +279,7 @@ export function BottleSpinGame({ s, token, refresh, runAction }: BottleSpinGameP
               onClick={() =>
                 runAction(async () => {
                   play("reveal");
-                  await chooseBottlePromptFn({
+                  return await chooseBottlePromptFn({
                     data: {
                       sessionToken: token,
                       code: s.code,
@@ -299,7 +299,7 @@ export function BottleSpinGame({ s, token, refresh, runAction }: BottleSpinGameP
               onClick={() =>
                 runAction(async () => {
                   play("reveal");
-                  await chooseBottlePromptFn({
+                  return await chooseBottlePromptFn({
                     data: {
                       sessionToken: token,
                       code: s.code,
@@ -354,7 +354,7 @@ export function BottleSpinGame({ s, token, refresh, runAction }: BottleSpinGameP
               onClick={() =>
                 runAction(async () => {
                   play("vote");
-                  await completeBottlePromptFn({
+                  return await completeBottlePromptFn({
                     data: { sessionToken: token, code: s.code },
                   });
                 }, refresh)
@@ -372,7 +372,7 @@ export function BottleSpinGame({ s, token, refresh, runAction }: BottleSpinGameP
                 onClick={() =>
                   runAction(async () => {
                     play("click");
-                    await skipBottlePromptFn({
+                    return await skipBottlePromptFn({
                       data: { sessionToken: token, code: s.code },
                     });
                   }, refresh)

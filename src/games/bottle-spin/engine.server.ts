@@ -306,3 +306,23 @@ export async function skipBottlePrompt(game: AnyGame, profileId: string) {
   await saveBottleSpinData(game.id, data);
   return { prompt: freshPrompt };
 }
+
+/** A player left: if the bottle was pointing at them (or they were spinning), reset to a fresh spin. */
+export async function handleBottleSpinPlayerLeft(
+  game: AnyGame,
+  leaverId: string,
+  remainingIds: string[],
+) {
+  const data = parseBottleSpinData(game);
+  if (remainingIds.length === 0) return;
+  const wasTarget = data.targetPlayerId === leaverId;
+  const wasSpinner = data.currentSpinnerId === leaverId;
+  if (!wasTarget && !wasSpinner) return;
+  if (wasSpinner) data.currentSpinnerId = remainingIds[0]!;
+  data.phase = "ready_to_spin";
+  data.targetPlayerId = null;
+  data.promptType = null;
+  data.currentPrompt = null;
+  data.spinEndsAt = null;
+  await saveBottleSpinData(game.id, data);
+}

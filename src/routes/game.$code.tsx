@@ -96,7 +96,14 @@ function GamePage() {
       return;
     }
     join({ data: { sessionToken: player.sessionToken, code } })
-      .then(() => setJoined(true))
+      .then((res) => {
+        // A failed join comes back as { error }, not as an exception.
+        if (res && typeof res === "object" && "error" in res && typeof res.error === "string") {
+          setJoinError(res.error);
+          return;
+        }
+        setJoined(true);
+      })
       .catch((e) => setJoinError(e instanceof Error ? e.message : "Couldn't join."));
   }, [ready, player?.sessionToken, code]);
 
@@ -122,7 +129,12 @@ function GamePage() {
   // One shared action runner: show the server's message instead of failing silently.
   const runAction = async (fn: () => Promise<unknown>, after?: () => void) => {
     try {
-      await fn();
+      const res = await fn();
+      // Server actions report failures as { ok: false, error } instead of throwing.
+      if (res && typeof res === "object" && "error" in res && typeof res.error === "string") {
+        toast.error(res.error);
+        return;
+      }
       after?.();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Something went wrong. Please try again.");

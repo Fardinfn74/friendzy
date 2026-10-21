@@ -312,3 +312,26 @@ export async function syncCarromState(
 export async function rematchCarrom(game: AnyGame, players: AnyPlayer[]) {
   await startCarromMatch(game, players);
 }
+
+/** A player left: pass the turn on if it was theirs; the last player standing wins. */
+export async function handleCarromPlayerLeft(game: AnyGame, leaverId: string) {
+  const data = parseCarromData(game);
+  if (data.phase === "ended") return;
+  const idx = data.players.findIndex((p) => p.profileId === leaverId);
+  if (idx === -1) return;
+  const wasTurn = data.currentTurnProfileId === leaverId;
+  data.players.splice(idx, 1);
+
+  if (data.players.length < 2) {
+    data.phase = "ended";
+    data.winnerId = data.players[0]?.profileId ?? null;
+    data.lastActionText = "The other player left. You win!";
+  } else if (wasTurn) {
+    const next = data.players[idx % data.players.length]!;
+    data.currentTurnProfileId = next.profileId;
+    data.striker = getInitialStriker(next.side);
+    data.phase = "aiming";
+    data.lastActionText = `A player left. It's ${next.assignedColor.toUpperCase()}'s turn.`;
+  }
+  await saveCarromData(game.id, data);
+}

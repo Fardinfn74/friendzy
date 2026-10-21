@@ -143,7 +143,7 @@ export function TruthOrDareGame({ s, token, refresh, runAction }: TruthOrDareGam
               onClick={() =>
                 runAction(async () => {
                   play("reveal");
-                  await chooseTruthOrDarePromptFn({
+                  return await chooseTruthOrDarePromptFn({
                     data: {
                       sessionToken: token,
                       code: s.code,
@@ -163,7 +163,7 @@ export function TruthOrDareGame({ s, token, refresh, runAction }: TruthOrDareGam
               onClick={() =>
                 runAction(async () => {
                   play("reveal");
-                  await chooseTruthOrDarePromptFn({
+                  return await chooseTruthOrDarePromptFn({
                     data: {
                       sessionToken: token,
                       code: s.code,
@@ -218,7 +218,7 @@ export function TruthOrDareGame({ s, token, refresh, runAction }: TruthOrDareGam
               onClick={() =>
                 runAction(async () => {
                   play("vote");
-                  await completeTruthOrDarePromptFn({
+                  return await completeTruthOrDarePromptFn({
                     data: { sessionToken: token, code: s.code },
                   });
                 }, refresh)
@@ -236,7 +236,7 @@ export function TruthOrDareGame({ s, token, refresh, runAction }: TruthOrDareGam
                 onClick={() =>
                   runAction(async () => {
                     play("click");
-                    await skipTruthOrDarePromptFn({
+                    return await skipTruthOrDarePromptFn({
                       data: { sessionToken: token, code: s.code },
                     });
                   }, refresh)

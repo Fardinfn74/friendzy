@@ -156,7 +156,7 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
 
     void runAction(
       async () => {
-        await makeChessMoveFn({
+        return await makeChessMoveFn({
           data: {
             sessionToken: token,
             code: s.code,
@@ -420,7 +420,7 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
                 onClick={() => {
                   void runAction(
                     async () => {
-                      await rematchChessFn({
+                      return await rematchChessFn({
                         data: { sessionToken: token, code: s.code },
                       });
                     },
@@ -507,7 +507,7 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
                   setConfirmResign(false);
                   void runAction(
                     async () => {
-                      await resignChessFn({
+                      return await resignChessFn({
                         data: { sessionToken: token, code: s.code },
                       });
                     },

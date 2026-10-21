@@ -169,7 +169,8 @@ export async function lockNumberGuessSecret(
     data.guessHistory[profileId] = {};
   }
 
-  const activePlayers = players.filter((p) => !("left_game" in p));
+  // `players` already excludes anyone who left (the caller filters them out).
+  const activePlayers = players;
   const allLocked =
     activePlayers.length >= 2 && activePlayers.every((p) => Boolean(data.locked[p.profile_id]));
 
@@ -399,4 +400,29 @@ export async function syncNumberGuessState(
     history: data.history,
     matchWinnerId: data.matchWinnerId,
   };
+}
+
+/** A player left mid-game: don't wait for their number, end the match if only one is left. */
+export async function handleNumberGuessPlayerLeft(
+  game: AnyGame,
+  leaverId: string,
+  remainingIds: string[],
+) {
+  const data = parseNumberGuessData(game);
+  if (data.phase === "match_ended") return;
+  if (remainingIds.length < 2) {
+    data.phase = "match_ended";
+    data.matchWinnerId = remainingIds[0] ?? null;
+    await saveNumberGuessData(game.id, data);
+    return;
+  }
+  if (data.phase === "pick") {
+    delete data.secrets[leaverId];
+    delete data.locked[leaverId];
+    if (remainingIds.every((id) => Boolean(data.locked[id]))) {
+      data.phase = "countdown";
+      data.countdownEndsAt = Date.now() + 3500;
+    }
+    await saveNumberGuessData(game.id, data);
+  }
 }
