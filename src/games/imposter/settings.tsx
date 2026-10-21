@@ -29,7 +29,7 @@ export function ImposterSettings({
     <section className="play-panel space-y-4 p-5 text-foreground">
       <div className="flex items-center justify-between border-b border-border/40 pb-2">
         <h2 className="font-display text-lg font-semibold flex items-center gap-2">
-          <span>🕵️</span> Imposter Game Settings
+          <span>🕵️</span> Imposta Game Settings
         </h2>
         {!s.me.isHost && (
           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
@@ -85,7 +85,7 @@ export function ImposterSettings({
 
       {s.mode === "double" && (
         <p className="rounded-lg bg-accent/20 p-2 text-xs text-muted-foreground border border-border">
-          🕵️ <b>Double Agent</b>: Imposters receive a decoy word and don't know they are imposters!
+          🕵️ <b>Double Agent</b>: Imposters receive a decoy word matching above 50% with the crew word, and don't know they are imposters!
         </p>
       )}
 

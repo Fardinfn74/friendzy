@@ -9,7 +9,7 @@ import { usernameEmail, useAccount } from "@/hooks/use-account";
 import { supabase } from "@/integrations/supabase/client";
 import { avatarEmoji } from "@/lib/game-types";
 import { PlayerAvatar } from "@/components/player-avatar";
-import { checkUsernameFn, createAccountFn } from "@/lib/shop.functions";
+import { checkUsernameFn, registerAccountFn, prepareLoginFn } from "@/lib/shop.functions";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -35,7 +35,8 @@ function AccountPage() {
   const nav = useNavigate();
   const { signedIn, account, avatarId, loading, refresh } = useAccount();
   const check = useServerFn(checkUsernameFn);
-  const create = useServerFn(createAccountFn);
+  const register = useServerFn(registerAccountFn);
+  const prepareLogin = useServerFn(prepareLoginFn);
   const [mode, setMode] = useState<"signup" | "signin">("signup");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -54,13 +55,25 @@ function AccountPage() {
         if (name.trim().length < 2) throw new Error("Name needs at least 2 characters.");
         const { available } = await check({ data: { username: u } });
         if (!available) throw new Error("That username is taken.");
-        const { error: e } = await supabase.auth.signUp({ email: usernameEmail(u), password });
-        if (e)
-          throw new Error(e.message.includes("registered") ? "That username is taken." : e.message);
-        const r = await create({ data: { username: u, displayName: name.trim() } });
-        if ("error" in r) throw new Error(r.error);
+
+        const reg = await register({
+          data: {
+            username: u,
+            displayName: name.trim(),
+            password,
+            avatarId: "fox",
+          },
+        });
+        if (!reg.ok) throw new Error(reg.error);
+
+        const { error: e } = await supabase.auth.signInWithPassword({
+          email: usernameEmail(u),
+          password,
+        });
+        if (e) throw new Error(e.message);
         localStorage.setItem("friendzy.bonus_pending", "true");
       } else {
+        await prepareLogin({ data: { username: u } });
         const { error: e } = await supabase.auth.signInWithPassword({
           email: usernameEmail(u),
           password,

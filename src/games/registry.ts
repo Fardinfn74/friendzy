@@ -21,7 +21,7 @@ export type GameEntry = {
 export const GAMES: GameEntry[] = [
   {
     id: "imposter",
-    name: "Imposter",
+    name: "Imposta",
     icon: "🕵️",
     stickerUrl: "/stickers/game-imposter.svg",
     accentBg: "bg-amber-400",
@@ -30,7 +30,7 @@ export const GAMES: GameEntry[] = [
     minPlayers: 3,
     maxPlayers: 12,
     status: "live",
-    route: "/games/imposter",
+    route: "/games/imposta",
     playerCountLabel: "3–12 players",
   },
   {
@@ -137,7 +137,12 @@ export const CATEGORY_FILTERS = ["All", "Party", "Brain", "Board", "2-Player"] a
 export type CategoryFilter = (typeof CATEGORY_FILTERS)[number];
 
 export function getGameById(id: string): GameEntry | undefined {
-  return GAMES.find((g) => g.id === id);
+  return GAMES.find(
+    (g) =>
+      g.id === id ||
+      (id === "imposta" && g.id === "imposter") ||
+      (id === "imposter" && g.id === "imposta"),
+  );
 }
 
 export function filterGames(category: CategoryFilter): GameEntry[] {

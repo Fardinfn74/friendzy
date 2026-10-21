@@ -50,6 +50,7 @@ export const registerAccountFn = createServerFn({ method: "POST" })
     const email = `${data.username}@players.imposta.app`;
 
     // 2. Create user with admin client (auto-confirms email and avoids SMTP rate limit blocks)
+    let userId: string;
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: data.password,
@@ -61,29 +62,55 @@ export const registerAccountFn = createServerFn({ method: "POST" })
     });
 
     if (authError || !authData?.user) {
-      return {
-        ok: false as const,
-        error: authError?.message.includes("already registered")
-          ? "That username is taken."
-          : (authError?.message ?? "Registration failed."),
-      };
+      if (
+        authError?.message.includes("already registered") ||
+        authError?.message.includes("already been registered")
+      ) {
+        // If user exists in Auth but not in player_accounts (e.g. from an earlier interrupted signup),
+        // recover the user by updating password and confirming email
+        const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+        const found = listData?.users?.find((u) => u.email === email);
+        if (found) {
+          await supabaseAdmin.auth.admin.updateUserById(found.id, {
+            password: data.password,
+            email_confirm: true,
+            user_metadata: {
+              display_name: data.displayName,
+              avatar_id: data.avatarId,
+            },
+          });
+          userId = found.id;
+        } else {
+          return { ok: false as const, error: "That username is taken." };
+        }
+      } else {
+        return {
+          ok: false as const,
+          error: authError?.message ?? "Registration failed.",
+        };
+      }
+    } else {
+      userId = authData.user.id;
     }
 
-    // 3. Insert record in player_accounts
-    const { error: dbError } = await supabaseAdmin.from("player_accounts").insert({
-      user_id: authData.user.id,
-      username: data.username,
-      display_name: data.displayName,
-    });
+    // 3. Upsert record in player_accounts
+    const { error: dbError } = await supabaseAdmin.from("player_accounts").upsert(
+      {
+        user_id: userId,
+        username: data.username,
+        display_name: data.displayName,
+      },
+      { onConflict: "user_id" },
+    );
 
-    if (dbError && !dbError.message.includes("player_accounts_pkey")) {
+    if (dbError) {
       return {
         ok: false as const,
         error: dbError.message.includes("username") ? "That username is taken." : dbError.message,
       };
     }
 
-    return { ok: true as const, userId: authData.user.id };
+    return { ok: true as const, userId };
   });
 
 export const prepareLoginFn = createServerFn({ method: "POST" })

@@ -9,7 +9,7 @@ export const Route = createFileRoute("/how-to-play")({
   head: () =>
     pageHead(
       "How to play",
-      "Learn to give hints, vote and bluff in Imposter's Classic and Double Agent modes.",
+      "Learn to give hints, vote and bluff in Imposta's Classic and Double Agent modes.",
     ),
   component: Rules,
 });

@@ -19,6 +19,7 @@ import { Route as GameCodeRouteImport } from './routes/game.$code'
 import { Route as GamesBottleSpinRouteImport } from './routes/games.bottle-spin'
 import { Route as GamesCarromRouteImport } from './routes/games.carrom'
 import { Route as GamesChessRouteImport } from './routes/games.chess'
+import { Route as GamesImpostaRouteImport } from './routes/games.imposta'
 import { Route as GamesImposterRouteImport } from './routes/games.imposter'
 import { Route as GamesLudoRouteImport } from './routes/games.ludo'
 import { Route as GamesNumberGuessRouteImport } from './routes/games.number-guess'
@@ -75,6 +76,11 @@ const GamesChessRoute = GamesChessRouteImport.update({
   path: '/games/chess',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GamesImpostaRoute = GamesImpostaRouteImport.update({
+  id: '/games/imposta',
+  path: '/games/imposta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesImposterRoute = GamesImposterRouteImport.update({
   id: '/games/imposter',
   path: '/games/imposter',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/games/bottle-spin': typeof GamesBottleSpinRoute
   '/games/carrom': typeof GamesCarromRoute
   '/games/chess': typeof GamesChessRoute
+  '/games/imposta': typeof GamesImpostaRoute
   '/games/imposter': typeof GamesImposterRoute
   '/games/ludo': typeof GamesLudoRoute
   '/games/number-guess': typeof GamesNumberGuessRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/games/bottle-spin': typeof GamesBottleSpinRoute
   '/games/carrom': typeof GamesCarromRoute
   '/games/chess': typeof GamesChessRoute
+  '/games/imposta': typeof GamesImpostaRoute
   '/games/imposter': typeof GamesImposterRoute
   '/games/ludo': typeof GamesLudoRoute
   '/games/number-guess': typeof GamesNumberGuessRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/games/bottle-spin': typeof GamesBottleSpinRoute
   '/games/carrom': typeof GamesCarromRoute
   '/games/chess': typeof GamesChessRoute
+  '/games/imposta': typeof GamesImpostaRoute
   '/games/imposter': typeof GamesImposterRoute
   '/games/ludo': typeof GamesLudoRoute
   '/games/number-guess': typeof GamesNumberGuessRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/games/bottle-spin'
     | '/games/carrom'
     | '/games/chess'
+    | '/games/imposta'
     | '/games/imposter'
     | '/games/ludo'
     | '/games/number-guess'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/games/bottle-spin'
     | '/games/carrom'
     | '/games/chess'
+    | '/games/imposta'
     | '/games/imposter'
     | '/games/ludo'
     | '/games/number-guess'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/games/bottle-spin'
     | '/games/carrom'
     | '/games/chess'
+    | '/games/imposta'
     | '/games/imposter'
     | '/games/ludo'
     | '/games/number-guess'
@@ -218,6 +230,7 @@ export interface RootRouteChildren {
   GamesBottleSpinRoute: typeof GamesBottleSpinRoute
   GamesCarromRoute: typeof GamesCarromRoute
   GamesChessRoute: typeof GamesChessRoute
+  GamesImpostaRoute: typeof GamesImpostaRoute
   GamesImposterRoute: typeof GamesImposterRoute
   GamesLudoRoute: typeof GamesLudoRoute
   GamesNumberGuessRoute: typeof GamesNumberGuessRoute
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesChessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/games/imposta': {
+      id: '/games/imposta'
+      path: '/games/imposta'
+      fullPath: '/games/imposta'
+      preLoaderRoute: typeof GamesImpostaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/imposter': {
       id: '/games/imposter'
       path: '/games/imposter'
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   GamesBottleSpinRoute: GamesBottleSpinRoute,
   GamesCarromRoute: GamesCarromRoute,
   GamesChessRoute: GamesChessRoute,
+  GamesImpostaRoute: GamesImpostaRoute,
   GamesImposterRoute: GamesImposterRoute,
   GamesLudoRoute: GamesLudoRoute,
   GamesNumberGuessRoute: GamesNumberGuessRoute,

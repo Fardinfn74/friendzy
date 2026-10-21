@@ -40,7 +40,7 @@ export const Route = createFileRoute("/")({
   head: () =>
     pageHead(
       "Home",
-      "FRIENDZY — The multiplayer party, brain, and board games hub for friends. Play Imposter, Word Duel, Chess, Ludo, and more.",
+      "FRIENDZY — The multiplayer party, brain, and board games hub for friends. Play Imposta, Word Duel, Chess, Ludo, and more.",
     ),
   component: FriendzyHubHome,
 });

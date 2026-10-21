@@ -67,7 +67,7 @@ export function RoleCard({ s }: { s: GameState }) {
       className={`role-card animate-flip ${imp ? "role-card-imposter" : "role-card-crew"} ${skin !== "classic" ? skin : ""}`}
     >
       <div className="role-card-inner">
-        <div className="role-serial">IMPOSTER · R{s.roundNumber.toString().padStart(2, "0")}</div>
+        <div className="role-serial">IMPOSTA · R{s.roundNumber.toString().padStart(2, "0")}</div>
         <div className="role-emblem" aria-hidden="true">
           {imp ? "🕵️" : "🔎"}
         </div>

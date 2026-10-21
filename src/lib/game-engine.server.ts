@@ -559,19 +559,46 @@ async function startGameImpl(sessionToken: string, code: string) {
     : words![Math.floor(Math.random() * words!.length)]!;
   let decoy: string | null = null;
   if (game.game_mode === "double") {
-    const { data: pool } = await supabaseAdmin.from("word_bank").select("word, category");
-    const same = (pool ?? []).filter((w) => w.word !== pick.word && w.category === pick.category);
-    const any = (pool ?? []).filter((w) => w.word !== pick.word);
-    const list = same.length ? same : any;
-    decoy = list.length ? list[Math.floor(Math.random() * list.length)]!.word : null;
+    try {
+      const { generateDoubleAgentDecoy } = await import("./ai-word.server");
+      decoy = await generateDoubleAgentDecoy(pick.word, pick.category);
+    } catch {
+      const { data: pool } = await supabaseAdmin.from("word_bank").select("word, category");
+      const same = (pool ?? []).filter((w) => w.word !== pick.word && w.category === pick.category);
+      const any = (pool ?? []).filter((w) => w.word !== pick.word);
+      const list = same.length ? same : any;
+      decoy = list.length ? list[Math.floor(Math.random() * list.length)]!.word : null;
+    }
   }
 
   const imposterCount = Math.min(game.imposter_count, maxImposters(players.length));
-  const shuffled = shuffle(players);
-  const imposterIds = new Set(shuffled.slice(0, imposterCount).map((p) => p.profile_id));
 
+  // 1. Pick imposters completely randomly from the players pool
+  const rolePool = shuffle(players);
+  const imposterIds = new Set(rolePool.slice(0, imposterCount).map((p) => p.profile_id));
+
+  // 2. Separate crew and imposter players
+  const crewPlayers = players.filter((p) => !imposterIds.has(p.profile_id));
+  const imposterPlayers = players.filter((p) => imposterIds.has(p.profile_id));
+
+  // 3. Round 1 must NOT start with an imposter! Pick a random crew member as the first clue giver
+  const firstCrewPlayer =
+    crewPlayers.length > 0
+      ? crewPlayers[Math.floor(Math.random() * crewPlayers.length)]!
+      : players[0]!;
+
+  // 4. Randomize the remaining players (both other crew and all imposters)
+  const remainingPlayers = shuffle([
+    ...crewPlayers.filter((p) => p.id !== firstCrewPlayer.id),
+    ...imposterPlayers,
+  ]);
+
+  // 5. Build the complete randomized turn queue starting with the crew player
+  const randomizedTurnOrder = [firstCrewPlayer, ...remainingPlayers];
+
+  // 6. Assign turn_order and role to each player
   await Promise.all(
-    shuffled.map((player, index) =>
+    randomizedTurnOrder.map((player, index) =>
       supabaseAdmin
         .from("game_players")
         .update({
@@ -913,7 +940,7 @@ async function settleOtherGameAfterLeave(game: GameRow, players: PlayerRow[], le
 }
 
 async function settleAfterRosterChange(game: GameRow, players: PlayerRow[], leaverId?: string) {
-  if ((game.game_type || "imposter") !== "imposter") {
+  if (!["imposter", "imposta"].includes(game.game_type || "imposter")) {
     await settleOtherGameAfterLeave(game, players, leaverId);
     return;
   }
