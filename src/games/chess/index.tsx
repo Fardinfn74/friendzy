@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Chess, type Square } from "chess.js";
 import { Clock, RotateCcw, Flag, Trophy, AlertCircle, Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { avatarEmoji, type GameState } from "@/lib/game-types";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
+import { Boundary3D, GraphicsToggle, useGraphicsMode } from "@/components/three/graphics";
 import { makeChessMoveFn, resignChessFn, rematchChessFn } from "@/lib/game.functions";
+
+// The 3D board (three.js) is only downloaded when a player actually uses it.
+const Chess3DBoard = lazy(() => import("./Chess3DBoard"));
 
 interface ChessGameProps {
   s: GameState;
@@ -38,15 +42,26 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
     to: Square;
   } | null>(null);
   const [confirmResign, setConfirmResign] = useState(false);
+  const { mode, setMode, canUse3D } = useGraphicsMode();
+
+  // Show my own move instantly and let the server confirm it in the background.
+  const [optimistic, setOptimistic] = useState<{
+    fen: string;
+    move: { from: string; to: string; san: string };
+  } | null>(null);
+  useEffect(() => {
+    setOptimistic(null);
+  }, [chessState?.fen]);
 
   // Parse board state client-side using chess.js
+  const displayFen = optimistic?.fen ?? chessState?.fen;
   const chessInstance = useMemo(() => {
     try {
-      return new Chess(chessState?.fen);
+      return new Chess(displayFen);
     } catch {
       return new Chess();
     }
-  }, [chessState?.fen]);
+  }, [displayFen]);
 
   const myColor = chessState?.myColor ?? null;
   const isMyTurn = chessState?.isMyTurn ?? false;
@@ -107,7 +122,7 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
 
   // Handle square click
   const handleSquareClick = (square: Square) => {
-    if (chessState.phase !== "playing" || !isMyTurn) return;
+    if (chessState.phase !== "playing" || !isMyTurn || optimistic) return;
 
     const piece = chessInstance.get(square);
 
@@ -154,17 +169,32 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
     setPendingPromotion(null);
     play("clue");
 
+    try {
+      const preview = new Chess(chessInstance.fen());
+      const made = preview.move({ from, to, ...(promotion ? { promotion } : {}) });
+      setOptimistic({ fen: preview.fen(), move: { from, to, san: made.san } });
+    } catch {
+      /* the server will reject it and tell the player why */
+    }
+
     void runAction(
       async () => {
-        return await makeChessMoveFn({
-          data: {
-            sessionToken: token,
-            code: s.code,
-            from,
-            to,
-            promotion,
-          },
-        });
+        try {
+          const res = await makeChessMoveFn({
+            data: {
+              sessionToken: token,
+              code: s.code,
+              from,
+              to,
+              promotion,
+            },
+          });
+          if (res && typeof res === "object" && "error" in res) setOptimistic(null);
+          return res;
+        } catch (e) {
+          setOptimistic(null); // put the piece back
+          throw e;
+        }
       },
       () => refresh(),
     );
@@ -187,7 +217,9 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
       ? ["h", "g", "f", "e", "d", "c", "b", "a"]
       : ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-  const lastMove = chessState.moves[chessState.moves.length - 1];
+  const serverLastMove = chessState.moves[chessState.moves.length - 1];
+  const lastMove = optimistic?.move ?? serverLastMove;
+  const moveCount = chessState.moves.length + (optimistic ? 1 : 0);
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
@@ -244,6 +276,36 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
           })()}
         </div>
 
+        {canUse3D && (
+          <div className="mb-2 flex justify-end">
+            <GraphicsToggle mode={mode} setMode={setMode} canUse3D={canUse3D} />
+          </div>
+        )}
+
+        {mode === "3d" && canUse3D ? (
+          <Boundary3D onError={() => setMode("2d")}>
+            <Suspense
+              fallback={
+                <div className="aspect-square max-w-[480px] mx-auto rounded-2xl border-4 border-amber-900/60 grid place-items-center text-sm font-bold text-muted-foreground">
+                  Loading 3D board…
+                </div>
+              }
+            >
+              <Chess3DBoard
+                fen={displayFen ?? chessState.fen}
+                myColor={myColor}
+                selectedSquare={selectedSquare}
+                legalDestinations={legalDestinations}
+                lastMove={lastMove ?? null}
+                inCheckColor={chessInstance.inCheck() ? chessInstance.turn() : null}
+                interactive={chessState.phase === "playing" && isMyTurn && !optimistic}
+                moveCount={moveCount}
+                onSquareClick={(sq) => handleSquareClick(sq as Square)}
+              />
+            </Suspense>
+          </Boundary3D>
+        ) : (
+          <>
         {/* The 8x8 Wooden Chess Board */}
         <div className="relative aspect-square max-w-[460px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-900/60 shadow-inner bg-[#e6c280]">
           <div className="grid grid-cols-8 grid-rows-8 w-full h-full">
@@ -315,6 +377,8 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
             )}
           </div>
         </div>
+          </>
+        )}
 
         {/* Bottom Player Card (You) */}
         <div className="flex items-center justify-between mt-3 px-2">

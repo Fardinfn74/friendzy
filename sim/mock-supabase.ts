@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 
 type Row = Record<string, any>;
+const LATENCY_MS = Number(process.env.MOCK_LATENCY_MS ?? 0);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+export const __stats = { calls: 0, writes: 0, broadcasts: [] as string[] };
 const tables: Record<string, Row[]> = {
   profiles: [], games: [], game_players: [], hints: [], votes: [], word_bank: [],
   player_accounts: [], owned_items: [],
@@ -60,7 +63,7 @@ class Builder implements PromiseLike<any> {
   order(col: string, o?: { ascending?: boolean }) { this.orderBy = { col, asc: o?.ascending !== false }; return this; }
   single() { this.mode = "single"; return this; }
   maybeSingle() { this.mode = "maybe"; return this; }
-  then<A, B>(res?: (v: any) => A, rej?: (e: any) => B) { return Promise.resolve().then(() => this.run()).then(res, rej); }
+  then<A, B>(res?: (v: any) => A, rej?: (e: any) => B) { return (async () => { __stats.calls++; if (this.op !== 'select') __stats.writes++; if (LATENCY_MS) await sleep(LATENCY_MS); return this.run(); })().then(res, rej); }
 
   private match(r: Row) { return this.filters.every(([c, v]) => r[c] === v); }
   private project(r: Row): Row {
@@ -124,6 +127,7 @@ class Builder implements PromiseLike<any> {
 export const supabaseAdmin = {
   from: (table: string) => new Builder(table),
   rpc: async (fn: string, args: any) => {
+    __stats.calls++; if (LATENCY_MS) await sleep(LATENCY_MS);
     if (fn === "rpc_upsert_profile") {
       let p = tables.profiles!.find((x) => x.session_token === args.p_session_token);
       if (p) Object.assign(p, { display_name: args.p_display_name, avatar_id: args.p_avatar_id });
@@ -136,6 +140,8 @@ export const supabaseAdmin = {
     }
     return { data: null, error: { message: `rpc ${fn} not mocked` } };
   },
+  channel: (topic: string) => ({ httpSend: async () => { __stats.broadcasts.push(topic); return { ok: true }; }, send: async () => 'ok' }),
+  removeChannel: async () => 'ok',
   auth: { admin: {} },
 };
 export const __tables = tables;

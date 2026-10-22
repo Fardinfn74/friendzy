@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Dices, Trophy, Sparkles, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { avatarEmoji, type GameState } from "@/lib/game-types";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
+import { Boundary3D, GraphicsToggle, useGraphicsMode } from "@/components/three/graphics";
+import { getTokenCoords } from "./board-map";
 import { rollLudoDiceFn, moveLudoTokenFn, rematchLudoFn } from "@/lib/game.functions";
 import type { LudoColor } from "./types";
+
+// The 3D board (three.js) is only downloaded when a player actually uses it.
+const Ludo3DBoard = lazy(() => import("./Ludo3DBoard"));
 
 interface LudoGameProps {
   s: GameState;
@@ -13,134 +18,6 @@ interface LudoGameProps {
   refresh: () => void;
   runAction: (fn: () => Promise<unknown>, after?: () => void) => Promise<void>;
 }
-
-// 52 common track squares coordinates: [row, col] on a 15x15 grid
-const TRACK_COORDS: [number, number][] = [
-  /* 0 - 4: Red arm out */
-  [6, 1],
-  [6, 2],
-  [6, 3],
-  [6, 4],
-  [6, 5],
-  /* 5 - 10: Up to top */
-  [5, 6],
-  [4, 6],
-  [3, 6],
-  [2, 6],
-  [1, 6],
-  [0, 6],
-  /* 11 - 12: Across top */
-  [0, 7],
-  [0, 8],
-  /* 13 - 17: Down green arm */
-  [1, 8],
-  [2, 8],
-  [3, 8],
-  [4, 8],
-  [5, 8],
-  /* 18 - 23: Right into yellow arm */
-  [6, 9],
-  [6, 10],
-  [6, 11],
-  [6, 12],
-  [6, 13],
-  [6, 14],
-  /* 24 - 25: Across right edge */
-  [7, 14],
-  [8, 14],
-  /* 26 - 30: Left along yellow arm */
-  [8, 13],
-  [8, 12],
-  [8, 11],
-  [8, 10],
-  [8, 9],
-  /* 31 - 36: Down along bottom arm */
-  [9, 8],
-  [10, 8],
-  [11, 8],
-  [12, 8],
-  [13, 8],
-  [14, 8],
-  /* 37 - 38: Across bottom edge */
-  [14, 7],
-  [14, 6],
-  /* 39 - 43: Up along blue arm */
-  [13, 6],
-  [12, 6],
-  [11, 6],
-  [10, 6],
-  [9, 6],
-  /* 44 - 49: Left into red arm */
-  [8, 5],
-  [8, 4],
-  [8, 3],
-  [8, 2],
-  [8, 1],
-  [8, 0],
-  /* 50 - 51: Turn into red entrance */
-  [7, 0],
-  [6, 0],
-];
-
-// Home stretch columns (steps 52-56)
-const HOME_STRETCH_COORDS: Record<LudoColor, [number, number][]> = {
-  red: [
-    [7, 1],
-    [7, 2],
-    [7, 3],
-    [7, 4],
-    [7, 5],
-  ],
-  green: [
-    [1, 7],
-    [2, 7],
-    [3, 7],
-    [4, 7],
-    [5, 7],
-  ],
-  yellow: [
-    [7, 13],
-    [7, 12],
-    [7, 11],
-    [7, 10],
-    [7, 9],
-  ],
-  blue: [
-    [13, 7],
-    [12, 7],
-    [11, 7],
-    [10, 7],
-    [9, 7],
-  ],
-};
-
-// Yard positions for tokens (step = -1)
-const YARD_COORDS: Record<LudoColor, [number, number][]> = {
-  red: [
-    [2, 2],
-    [2, 3],
-    [3, 2],
-    [3, 3],
-  ],
-  green: [
-    [2, 11],
-    [2, 12],
-    [3, 11],
-    [3, 12],
-  ],
-  yellow: [
-    [11, 11],
-    [11, 12],
-    [12, 11],
-    [12, 12],
-  ],
-  blue: [
-    [11, 2],
-    [11, 3],
-    [12, 2],
-    [12, 3],
-  ],
-};
 
 const COLOR_THEMES: Record<
   LudoColor,
@@ -180,18 +57,12 @@ const COLOR_THEMES: Record<
   },
 };
 
-const COLOR_START_OFFSETS: Record<LudoColor, number> = {
-  red: 0,
-  green: 13,
-  yellow: 26,
-  blue: 39,
-};
 
-const SAFE_SQUARES = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
 
 export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
   const ludoState = s.ludo;
   const [isRollingAnimation, setIsRollingAnimation] = useState(false);
+  const { mode, setMode, canUse3D } = useGraphicsMode();
 
   const isMyTurn = ludoState?.isMyTurn ?? false;
 
@@ -216,9 +87,16 @@ export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
     setTimeout(() => {
       void runAction(
         async () => {
-          return await rollLudoDiceFn({
-            data: { sessionToken: token, code: s.code },
-          });
+          try {
+            const res = await rollLudoDiceFn({
+              data: { sessionToken: token, code: s.code },
+            });
+            if (res && typeof res === "object" && "error" in res) setIsRollingAnimation(false);
+            return res;
+          } catch (e) {
+            setIsRollingAnimation(false);
+            throw e;
+          }
         },
         () => {
           setIsRollingAnimation(false);
@@ -245,22 +123,6 @@ export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
       },
       () => refresh(),
     );
-  };
-
-  // Find token coordinates on the grid
-  const getTokenCoords = (color: LudoColor, step: number, id: number): [number, number] => {
-    if (step === -1) {
-      return YARD_COORDS[color][id] ?? [7, 7];
-    }
-    if (step >= 57) {
-      return [7, 7]; // Home center
-    }
-    if (step >= 52) {
-      return HOME_STRETCH_COORDS[color][step - 52] ?? [7, 7];
-    }
-    const offset = COLOR_START_OFFSETS[color];
-    const trackIdx = (offset + step) % 52;
-    return TRACK_COORDS[trackIdx] ?? [7, 7];
   };
 
   // Build map of grid [r, c] -> tokens currently on that square
@@ -317,6 +179,38 @@ export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
           </div>
         </div>
 
+        {canUse3D && (
+          <div className="mb-2 flex justify-end">
+            <GraphicsToggle mode={mode} setMode={setMode} canUse3D={canUse3D} />
+          </div>
+        )}
+
+        {mode === "3d" && canUse3D ? (
+          <Boundary3D onError={() => setMode("2d")}>
+            <Suspense
+              fallback={
+                <div className="aspect-square max-w-[480px] mx-auto rounded-2xl border-4 border-amber-900/60 grid place-items-center text-sm font-bold text-muted-foreground">
+                  Loading 3D board…
+                </div>
+              }
+            >
+              <Ludo3DBoard
+                players={ludoState.players}
+                currentTurnColor={ludoState.currentTurnColor}
+                movableTokenIds={
+                  isMyTurn && ludoState.phase === "moving" ? ludoState.validTokenMoves : []
+                }
+                myColor={ludoState.myColor}
+                diceValue={ludoState.diceValue}
+                rolling={isRollingAnimation}
+                canRoll={isMyTurn && ludoState.phase === "rolling" && !isRollingAnimation}
+                onRoll={handleRollDice}
+                onTokenClick={handleSelectToken}
+              />
+            </Suspense>
+          </Boundary3D>
+        ) : (
+          <>
         {/* The 15x15 Ludo Board Grid */}
         <div className="relative aspect-square max-w-[440px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-950 shadow-inner bg-card select-none">
           <div className="grid grid-cols-15 grid-rows-15 w-full h-full">
@@ -436,6 +330,8 @@ export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
             )}
           </div>
         </div>
+          </>
+        )}
 
         {/* Dice & Interaction Tray */}
         <div className="mt-4 p-4 rounded-2xl bg-card border border-border/80 shadow-panel flex items-center justify-between">

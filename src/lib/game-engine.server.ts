@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { withRoomLock } from "./room-lock.server";
+import { notifyRoom } from "./room-notify.server";
 import {
   HINT_SECONDS,
   MAX_PLAYERS,
@@ -55,6 +56,7 @@ type PlayerRow = {
   card_seen: boolean;
   turn_order: number | null;
   joined_at: string;
+  last_seen_at?: string | null;
   profiles: { display_name: string; avatar_id: string } | null;
 };
 
@@ -87,7 +89,14 @@ function present(players: PlayerRow[]) {
   return players.filter((p) => !p.left_game);
 }
 
+type ProfileRow = { id: string; display_name: string; avatar_id: string };
+const profileCache = new Map<string, { value: ProfileRow; expires: number }>();
+const PROFILE_TTL_MS = 5 * 60_000;
+
 export async function resolveProfile(sessionToken: string) {
+  // Looked up on every poll by every player, so keep it in memory for a few minutes.
+  const hit = profileCache.get(sessionToken);
+  if (hit && hit.expires > Date.now()) return hit.value;
   // Use SECURITY DEFINER RPC to bypass RLS — works with publishable key too.
   const { data, error } = await supabaseAdmin.rpc("rpc_get_profile", {
     p_session_token: sessionToken,
@@ -95,7 +104,9 @@ export async function resolveProfile(sessionToken: string) {
   if (error) fail(error.message);
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) fail("We couldn't find your player profile — pick a name again.");
-  return row as { id: string; display_name: string; avatar_id: string };
+  if (profileCache.size > 5000) profileCache.clear();
+  profileCache.set(sessionToken, { value: row as ProfileRow, expires: Date.now() + PROFILE_TTL_MS });
+  return row as ProfileRow;
 }
 
 export async function upsertProfile(input: {
@@ -105,6 +116,7 @@ export async function upsertProfile(input: {
 }) {
   const displayName = input.displayName.trim().slice(0, 16);
   if (displayName.length < 2) fail("Your name needs at least 2 characters.");
+  profileCache.delete(input.sessionToken);
   // Use SECURITY DEFINER RPC to bypass RLS — works with publishable key too.
   const { data, error } = await supabaseAdmin.rpc("rpc_upsert_profile", {
     p_session_token: input.sessionToken,
@@ -136,6 +148,23 @@ async function loadPlayers(gameId: string) {
     .order("joined_at", { ascending: true });
   if (error) fail(error.message);
   return (data ?? []) as PlayerRow[];
+}
+
+type HintLite = { profile_id: string; round_number: number; message: string; skipped: boolean };
+type VoteLite = { voter_id: string };
+
+async function loadHintRows(gameId: string): Promise<HintLite[]> {
+  const { data } = await supabaseAdmin
+    .from("hints")
+    .select("profile_id, round_number, message, skipped")
+    .eq("game_id", gameId)
+    .order("created_at", { ascending: true });
+  return (data ?? []) as HintLite[];
+}
+
+async function loadVoteRows(gameId: string, round: number): Promise<VoteLite[]> {
+  const { data } = await supabaseAdmin.from("votes").select("voter_id").eq("game_id", gameId).eq("round_number", round);
+  return (data ?? []) as VoteLite[];
 }
 
 async function patchGame(gameId: string, patch: Record<string, unknown>) {
@@ -188,7 +217,7 @@ export async function createGame(
   fail("Couldn't create a room right now. Please try again.");
 }
 
-export async function joinGame(sessionToken: string, code: string) {
+async function joinGameImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const players = await loadPlayers(game.id);
@@ -272,6 +301,18 @@ async function updateSettingsImpl(
       | {
           boardMode?: "fast" | "classic" | undefined;
           targetScore?: 15 | 25 | undefined;
+        }
+      | undefined;
+    letterBlitzSettings?:
+      | {
+          rounds?: number | undefined;
+          roundTime?: number | undefined;
+        }
+      | undefined;
+    doodleRushSettings?:
+      | {
+          rounds?: number | undefined;
+          drawTime?: number | undefined;
         }
       | undefined;
   },
@@ -414,6 +455,22 @@ async function updateSettingsImpl(
       },
     };
   }
+  if (settings.letterBlitzSettings) {
+    const existing = (game.game_settings as Record<string, unknown>) || {};
+    patch["game_settings"] = {
+      ...((patch["game_settings"] as Record<string, unknown>) || existing),
+      letterBlitzRounds: settings.letterBlitzSettings.rounds ?? existing.letterBlitzRounds ?? 5,
+      letterBlitzRoundTime: settings.letterBlitzSettings.roundTime ?? existing.letterBlitzRoundTime ?? 45,
+    };
+  }
+  if (settings.doodleRushSettings) {
+    const existing = (game.game_settings as Record<string, unknown>) || {};
+    patch["game_settings"] = {
+      ...((patch["game_settings"] as Record<string, unknown>) || existing),
+      doodleRushRounds: settings.doodleRushSettings.rounds ?? existing.doodleRushRounds ?? 3,
+      doodleRushDrawTime: settings.doodleRushSettings.drawTime ?? existing.doodleRushDrawTime ?? 80,
+    };
+  }
   await patchGame(game.id, patch);
 }
 
@@ -431,7 +488,7 @@ async function kickPlayerImpl(sessionToken: string, code: string, targetProfileI
   if (error) fail(error.message);
 }
 
-export async function setReady(sessionToken: string, code: string, ready: boolean) {
+async function setReadyImpl(sessionToken: string, code: string, ready: boolean) {
   const profile = await resolveProfile(sessionToken);
   const game = await loadGameByCode(code);
   const { error } = await supabaseAdmin
@@ -545,6 +602,22 @@ async function startGameImpl(sessionToken: string, code: string) {
     return;
   }
 
+  if (gameType === "letter-blitz") {
+    if (players.length < 2) fail("Letter Blitz requires at least 2 players.");
+    if (!players.every((p) => p.is_ready)) fail("Everyone has to be ready first.");
+    const lbEngine = await import("@/games/letter-blitz/engine.server");
+    await lbEngine.startLetterBlitzMatch(game, players);
+    return;
+  }
+
+  if (gameType === "doodle-rush") {
+    if (players.length < 2) fail("Doodle Rush requires at least 2 players.");
+    if (!players.every((p) => p.is_ready)) fail("Everyone has to be ready first.");
+    const drEngine = await import("@/games/doodle-rush/engine.server");
+    await drEngine.startDoodleRushMatch(game, players);
+    return;
+  }
+
   if (players.length < MIN_PLAYERS) fail(`You need at least ${MIN_PLAYERS} players.`);
   if (!players.every((p) => p.is_ready)) fail("Everyone has to be ready first.");
 
@@ -557,12 +630,14 @@ async function startGameImpl(sessionToken: string, code: string) {
   const pick = game.ai_word
     ? { word: game.ai_word, category: game.ai_category ?? game.ai_theme ?? "Custom" }
     : words![Math.floor(Math.random() * words!.length)]!;
+  // ── Double Agent decoy: use Gemini for >50% semantic match ──────────────
   let decoy: string | null = null;
   if (game.game_mode === "double") {
     try {
       const { generateDoubleAgentDecoy } = await import("./ai-word.server");
       decoy = await generateDoubleAgentDecoy(pick.word, pick.category);
     } catch {
+      // Fallback: pick same-category word from word bank
       const { data: pool } = await supabaseAdmin.from("word_bank").select("word, category");
       const same = (pool ?? []).filter((w) => w.word !== pick.word && w.category === pick.category);
       const any = (pool ?? []).filter((w) => w.word !== pick.word);
@@ -573,32 +648,27 @@ async function startGameImpl(sessionToken: string, code: string) {
 
   const imposterCount = Math.min(game.imposter_count, maxImposters(players.length));
 
-  // 1. Pick imposters completely randomly from the players pool
+  // ── Turn order: randomise roles, but guarantee round-1 starts with crew ─
   const rolePool = shuffle(players);
   const imposterIds = new Set(rolePool.slice(0, imposterCount).map((p) => p.profile_id));
 
-  // 2. Separate crew and imposter players
   const crewPlayers = players.filter((p) => !imposterIds.has(p.profile_id));
   const imposterPlayers = players.filter((p) => imposterIds.has(p.profile_id));
 
-  // 3. Round 1 must NOT start with an imposter! Pick a random crew member as the first clue giver
-  const firstCrewPlayer =
+  // First turn slot = random crew member (never an imposter)
+  const firstPlayer =
     crewPlayers.length > 0
       ? crewPlayers[Math.floor(Math.random() * crewPlayers.length)]!
       : players[0]!;
 
-  // 4. Randomize the remaining players (both other crew and all imposters)
-  const remainingPlayers = shuffle([
-    ...crewPlayers.filter((p) => p.id !== firstCrewPlayer.id),
+  const rest = shuffle([
+    ...crewPlayers.filter((p) => p.id !== firstPlayer.id),
     ...imposterPlayers,
   ]);
+  const orderedPlayers = [firstPlayer, ...rest];
 
-  // 5. Build the complete randomized turn queue starting with the crew player
-  const randomizedTurnOrder = [firstCrewPlayer, ...remainingPlayers];
-
-  // 6. Assign turn_order and role to each player
   await Promise.all(
-    randomizedTurnOrder.map((player, index) =>
+    orderedPlayers.map((player, index) =>
       supabaseAdmin
         .from("game_players")
         .update({
@@ -940,7 +1010,7 @@ async function settleOtherGameAfterLeave(game: GameRow, players: PlayerRow[], le
 }
 
 async function settleAfterRosterChange(game: GameRow, players: PlayerRow[], leaverId?: string) {
-  if (!["imposter", "imposta"].includes(game.game_type || "imposter")) {
+  if ((game.game_type || "imposter") !== "imposter") {
     await settleOtherGameAfterLeave(game, players, leaverId);
     return;
   }
@@ -982,11 +1052,11 @@ async function settleAfterRosterChange(game: GameRow, players: PlayerRow[], leav
 }
 
 /** Idempotent: any client may call this the moment it notices a deadline passed. */
-export async function advanceIfExpired(code: string) {
-  const game = await loadGameByCode(code);
+export async function advanceIfExpired(code: string, preloaded?: GameRow): Promise<boolean> {
+  const game = preloaded ?? (await loadGameByCode(code));
   const now = Date.now();
 
-  if (game.status === "reveal") return;
+  if (game.status === "reveal") return false;
 
   if (game.status === "hint" && game.turn_deadline && Date.parse(game.turn_deadline) <= now) {
     if (game.current_turn_profile_id) {
@@ -1002,12 +1072,12 @@ export async function advanceIfExpired(code: string) {
         .select("id");
     }
     await advanceTurn(game, game.round_number);
-    return;
+    return true;
   }
 
   if (game.status === "voting" && game.vote_deadline && Date.parse(game.vote_deadline) <= now) {
     await tallyVotes(game);
-    return;
+    return true;
   }
 
   if (game.status === "resolved" && game.resolve_until && Date.parse(game.resolve_until) <= now) {
@@ -1017,7 +1087,9 @@ export async function advanceIfExpired(code: string) {
       const players = await loadPlayers(game.id);
       await beginHintRound(game, players, game.round_number + 1);
     }
+    return true;
   }
+  return false;
 }
 
 async function playAgainImpl(sessionToken: string, code: string) {
@@ -1060,29 +1132,29 @@ async function playAgainImpl(sessionToken: string, code: string) {
 /* ------------------------------------------------------------- read state --- */
 
 export async function getState(sessionToken: string, code: string): Promise<GameState> {
-  const profile = await resolveProfile(sessionToken);
-  await advanceIfExpired(code).catch(() => {});
+  const profile = await resolveProfile(sessionToken); // cached: usually no database round trip
 
-  const game = await loadGameByCode(code);
-  const players = await loadPlayers(game.id);
+  let game = await loadGameByCode(code);
+  if (await advanceIfExpired(code, game).catch(() => false)) game = await loadGameByCode(code);
+
+  // Independent reads run together instead of one after another. Hints and votes only exist in Imposter.
+  const isImposterGame = ((game.game_type as string) || "imposter") === "imposter";
+  const [players, hintRows, voteRows] = await Promise.all([
+    loadPlayers(game.id),
+    isImposterGame ? loadHintRows(game.id) : Promise.resolve([] as HintLite[]),
+    isImposterGame ? loadVoteRows(game.id, game.round_number) : Promise.resolve([] as VoteLite[]),
+  ]);
   const me = players.find((p) => p.profile_id === profile.id);
   if (!me) fail("You're not in this game.");
 
-  await supabaseAdmin
-    .from("game_players")
-    .update({ last_seen_at: new Date().toISOString() })
-    .eq("id", me.id);
-
-  const { data: hintRows } = await supabaseAdmin
-    .from("hints")
-    .select("profile_id, round_number, message, skipped")
-    .eq("game_id", game.id)
-    .order("created_at", { ascending: true });
-  const { data: voteRows } = await supabaseAdmin
-    .from("votes")
-    .select("voter_id")
-    .eq("game_id", game.id)
-    .eq("round_number", game.round_number);
+  // Only informational, so refresh it every 30 s instead of on every poll (it was a write per player per second).
+  const seenAt = me.last_seen_at ? Date.parse(me.last_seen_at) : 0;
+  if (Date.now() - seenAt > 30_000) {
+    await supabaseAdmin
+      .from("game_players")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", me.id);
+  }
 
   const hintedThisRound = new Set(
     (hintRows ?? []).filter((h) => h.round_number === game.round_number).map((h) => h.profile_id),
@@ -1134,6 +1206,23 @@ export async function getState(sessionToken: string, code: string): Promise<Game
     carromState = await carromEngine.syncCarromState(game, players, profile.id);
   }
 
+  let letterBlitzState = null;
+  if (gameType === "letter-blitz") {
+    const lbEngine = await import("@/games/letter-blitz/engine.server");
+    await lbEngine.tickLetterBlitz(game);
+    letterBlitzState = lbEngine.buildLetterBlitzClientState(lbEngine.parseLetterBlitzData(game));
+  }
+
+  let doodleRushState = null;
+  if (gameType === "doodle-rush") {
+    const drEngine = await import("@/games/doodle-rush/engine.server");
+    await drEngine.tickDoodleRush(game);
+    doodleRushState = drEngine.buildDoodleRushClientState(
+      drEngine.parseDoodleRushData(game),
+      profile.id,
+    );
+  }
+
   return {
     code: game.code,
     gameType,
@@ -1145,11 +1234,15 @@ export async function getState(sessionToken: string, code: string): Promise<Game
     chess: chessState,
     ludo: ludoState,
     carrom: carromState,
+    letterBlitz: letterBlitzState,
+    doodleRush: doodleRushState,
     status: (wordDuelState?.phase === "match_ended" ||
     numberGuessState?.phase === "match_ended" ||
     chessState?.phase === "ended" ||
     ludoState?.phase === "ended" ||
-    carromState?.phase === "ended"
+    carromState?.phase === "ended" ||
+    letterBlitzState?.phase === "game_over" ||
+    doodleRushState?.phase === "game_over"
       ? "ended"
       : game.status) as GameStatus,
     difficulty: game.difficulty as Difficulty,
@@ -1427,12 +1520,79 @@ async function rematchCarromImpl(sessionToken: string, code: string) {
   await carromEngine.rematchCarrom(game, players);
 }
 
+/* ---------------------------------------------------- letter-blitz actions --- */
+
+async function submitLetterBlitzGuessImpl(
+  sessionToken: string,
+  code: string,
+  word: string,
+) {
+  const profile = await resolveProfile(sessionToken);
+  const game = await loadGameByCode(code);
+  const lbEngine = await import("@/games/letter-blitz/engine.server");
+  return await lbEngine.submitLetterBlitzGuess(game, profile.id, profile.display_name, word);
+}
+
+async function advanceLetterBlitzRoundImpl(sessionToken: string, code: string) {
+  const profile = await resolveProfile(sessionToken);
+  const game = await loadGameByCode(code);
+  if (game.host_id !== profile.id) fail("Only host can advance rounds.");
+  const lbEngine = await import("@/games/letter-blitz/engine.server");
+  await lbEngine.advanceLetterBlitzRound(game);
+}
+
+/* ----------------------------------------------------- doodle-rush actions --- */
+
+async function submitDoodleStrokeImpl(
+  sessionToken: string,
+  code: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  stroke: any,
+) {
+  const profile = await resolveProfile(sessionToken);
+  const game = await loadGameByCode(code);
+  const drEngine = await import("@/games/doodle-rush/engine.server");
+  await drEngine.submitDoodleStroke(game, profile.id, stroke);
+}
+
+async function submitDoodleGuessImpl(
+  sessionToken: string,
+  code: string,
+  guess: string,
+) {
+  const profile = await resolveProfile(sessionToken);
+  const game = await loadGameByCode(code);
+  const drEngine = await import("@/games/doodle-rush/engine.server");
+  return await drEngine.submitDoodleGuess(game, profile.id, profile.display_name, guess);
+}
+
+async function clearDoodleCanvasImpl(sessionToken: string, code: string) {
+  const profile = await resolveProfile(sessionToken);
+  const game = await loadGameByCode(code);
+  const drEngine = await import("@/games/doodle-rush/engine.server");
+  await drEngine.clearDoodleCanvas(game, profile.id);
+}
+
+async function advanceDoodleRoundImpl(sessionToken: string, code: string) {
+  const profile = await resolveProfile(sessionToken);
+  const game = await loadGameByCode(code);
+  if (game.host_id !== profile.id) fail("Only host can advance rounds.");
+  const drEngine = await import("@/games/doodle-rush/engine.server");
+  await drEngine.advanceDoodleRound(game);
+}
 
 /* ------------------------------------------------- per-room serialised actions --- */
 // Every state-changing action runs one-at-a-time per room (see room-lock.server.ts).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function locked<A extends [string, string, ...any[]], R>(fn: (...args: A) => Promise<R>) {
-  return (...args: A): Promise<R> => withRoomLock(args[1], () => fn(...args));
+  return (...args: A): Promise<R> =>
+    withRoomLock(args[1], async () => {
+      try {
+        return await fn(...args);
+      } finally {
+        notifyRoom(args[1]); // wake the other players' screens right away
+      }
+    });
 }
 
 export const startGame = locked(startGameImpl);
@@ -1466,3 +1626,11 @@ export const moveLudoToken = locked(moveLudoTokenImpl);
 export const rematchLudo = locked(rematchLudoImpl);
 export const submitCarromShotResult = locked(submitCarromShotResultImpl);
 export const rematchCarrom = locked(rematchCarromImpl);
+export const submitLetterBlitzGuess = locked(submitLetterBlitzGuessImpl);
+export const advanceLetterBlitzRound = locked(advanceLetterBlitzRoundImpl);
+export const submitDoodleStroke = locked(submitDoodleStrokeImpl);
+export const submitDoodleGuess = locked(submitDoodleGuessImpl);
+export const clearDoodleCanvas = locked(clearDoodleCanvasImpl);
+export const advanceDoodleRound = locked(advanceDoodleRoundImpl);
+export const joinGame = locked(joinGameImpl);
+export const setReady = locked(setReadyImpl);

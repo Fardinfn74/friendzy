@@ -11,6 +11,7 @@ import { play } from "@/lib/sounds";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { usePlayer } from "@/hooks/use-player";
+import { supabase } from "@/integrations/supabase/client";
 import { avatarEmoji, MIN_PLAYERS, type GameState, type PublicPlayer } from "@/lib/game-types";
 import { PlayerAvatar } from "@/components/player-avatar";
 import {
@@ -39,6 +40,23 @@ import { LudoGame } from "@/games/ludo";
 import { LudoSettingsView } from "@/games/ludo/settings";
 import { CarromGame } from "@/games/carrom";
 import { CarromSettingsView } from "@/games/carrom/settings";
+import { LetterBlitzGame } from "@/games/letter-blitz";
+import { LetterBlitzSettingsView } from "@/games/letter-blitz/settings";
+import { DoodleRushGame } from "@/games/doodle-rush";
+import { DoodleRushSettingsView } from "@/games/doodle-rush/settings";
+
+/** True when the next state change is caused by a clock (countdown, deadline, animation end), not by a player's action. */
+function isClockDriven(s: GameState): boolean {
+  const t = s.gameType ?? "imposter";
+  if (t === "imposter") return s.status === "hint" || s.status === "voting" || s.status === "resolved";
+  if (t === "word-duel") return s.wordDuel?.phase === "countdown" || s.wordDuel?.phase === "word";
+  if (t === "number-guess") return s.numberGuess?.phase === "countdown";
+  if (t === "bottle-spin") return s.bottleSpin?.phase === "spinning";
+  if (t === "chess") return Boolean(s.chess?.settings?.timedMode) && s.chess?.phase === "playing";
+  if (t === "letter-blitz") return s.letterBlitz?.phase === "countdown" || s.letterBlitz?.phase === "round_active";
+  if (t === "doodle-rush") return s.doodleRush?.phase === "countdown" || s.doodleRush?.phase === "drawing";
+  return false;
+}
 
 export const Route = createFileRoute("/game/$code")({
   head: ({ params }) => ({
@@ -107,6 +125,29 @@ function GamePage() {
       .catch((e) => setJoinError(e instanceof Error ? e.message : "Couldn't join."));
   }, [ready, player?.sessionToken, code]);
 
+  // Live push: the server announces every change on a Realtime channel, so a move shows up on the other
+  // phones immediately. Polling stays on as a safety net and is only relaxed once a push has really arrived.
+  const [pushWorks, setPushWorks] = useState(false);
+  useEffect(() => {
+    if (!ready || !joined) return;
+    const channel = supabase.channel(`room:${code.trim().toUpperCase()}`);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    channel
+      .on("broadcast", { event: "tick" }, () => {
+        setPushWorks(true);
+        if (timer) return; // coalesce bursts of changes into one refresh
+        timer = setTimeout(() => {
+          timer = undefined;
+          void qc.invalidateQueries({ queryKey: ["game", code] });
+        }, 30);
+      })
+      .subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      void supabase.removeChannel(channel);
+    };
+  }, [ready, joined, code, qc]);
+
   const q = useQuery<GameState>({
     queryKey: ["game", code],
     queryFn: () => {
@@ -118,9 +159,11 @@ function GamePage() {
     refetchInterval: (query) => {
       const s = query.state.data as GameState | undefined;
       if (!s) return 1000;
-      if (s.status === "ended") return 2000;
-      if (s.status === "hint" || s.status === "voting" || s.status === "resolved") return 700;
-      return 1000;
+      if (s.status === "ended") return pushWorks ? 5000 : 2000;
+      // Clock-driven moments (countdowns, deadlines) are never announced by a push: keep polling fast.
+      if (isClockDriven(s)) return 700;
+      // Turn-based moments are pushed. Once pushes are proven to arrive, polling is just a safety net.
+      return pushWorks ? 3000 : s.status === "hint" ? 700 : 1000;
     },
   });
 
@@ -277,6 +320,20 @@ function GamePage() {
         />
       ) : s.gameType === "carrom" ? (
         <CarromGame
+          s={s}
+          token={token}
+          refresh={refresh}
+          runAction={runAction}
+        />
+      ) : s.gameType === "letter-blitz" ? (
+        <LetterBlitzGame
+          s={s}
+          token={token}
+          refresh={refresh}
+          runAction={runAction}
+        />
+      ) : s.gameType === "doodle-rush" ? (
+        <DoodleRushGame
           s={s}
           token={token}
           refresh={refresh}
@@ -621,6 +678,20 @@ function Lobby({ s, token, refresh }: { s: GameState; token: string; refresh: ()
             updateSettings={updateSettings}
             refresh={refresh}
           />
+        </section>
+      ) : s.gameType === "letter-blitz" ? (
+        <section className="play-panel space-y-4 p-5 shadow-panel">
+          <h2 className="font-display font-semibold text-lg border-b border-border/40 pb-2">
+            Match Settings
+          </h2>
+          <LetterBlitzSettingsView s={s} token={token} />
+        </section>
+      ) : s.gameType === "doodle-rush" ? (
+        <section className="play-panel space-y-4 p-5 shadow-panel">
+          <h2 className="font-display font-semibold text-lg border-b border-border/40 pb-2">
+            Match Settings
+          </h2>
+          <DoodleRushSettingsView s={s} token={token} />
         </section>
       ) : (
         <ImposterSettings s={s} token={token} refresh={refresh} runAction={a.run} />

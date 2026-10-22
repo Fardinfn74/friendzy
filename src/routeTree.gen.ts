@@ -19,8 +19,10 @@ import { Route as GameCodeRouteImport } from './routes/game.$code'
 import { Route as GamesBottleSpinRouteImport } from './routes/games.bottle-spin'
 import { Route as GamesCarromRouteImport } from './routes/games.carrom'
 import { Route as GamesChessRouteImport } from './routes/games.chess'
+import { Route as GamesDoodleRushRouteImport } from './routes/games.doodle-rush'
 import { Route as GamesImpostaRouteImport } from './routes/games.imposta'
 import { Route as GamesImposterRouteImport } from './routes/games.imposter'
+import { Route as GamesLetterBlitzRouteImport } from './routes/games.letter-blitz'
 import { Route as GamesLudoRouteImport } from './routes/games.ludo'
 import { Route as GamesNumberGuessRouteImport } from './routes/games.number-guess'
 import { Route as GamesTruthOrDareRouteImport } from './routes/games.truth-or-dare'
@@ -76,6 +78,11 @@ const GamesChessRoute = GamesChessRouteImport.update({
   path: '/games/chess',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GamesDoodleRushRoute = GamesDoodleRushRouteImport.update({
+  id: '/games/doodle-rush',
+  path: '/games/doodle-rush',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GamesImpostaRoute = GamesImpostaRouteImport.update({
   id: '/games/imposta',
   path: '/games/imposta',
@@ -84,6 +91,11 @@ const GamesImpostaRoute = GamesImpostaRouteImport.update({
 const GamesImposterRoute = GamesImposterRouteImport.update({
   id: '/games/imposter',
   path: '/games/imposter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesLetterBlitzRoute = GamesLetterBlitzRouteImport.update({
+  id: '/games/letter-blitz',
+  path: '/games/letter-blitz',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesLudoRoute = GamesLudoRouteImport.update({
@@ -118,8 +130,10 @@ export interface FileRoutesByFullPath {
   '/games/bottle-spin': typeof GamesBottleSpinRoute
   '/games/carrom': typeof GamesCarromRoute
   '/games/chess': typeof GamesChessRoute
+  '/games/doodle-rush': typeof GamesDoodleRushRoute
   '/games/imposta': typeof GamesImpostaRoute
   '/games/imposter': typeof GamesImposterRoute
+  '/games/letter-blitz': typeof GamesLetterBlitzRoute
   '/games/ludo': typeof GamesLudoRoute
   '/games/number-guess': typeof GamesNumberGuessRoute
   '/games/truth-or-dare': typeof GamesTruthOrDareRoute
@@ -136,8 +150,10 @@ export interface FileRoutesByTo {
   '/games/bottle-spin': typeof GamesBottleSpinRoute
   '/games/carrom': typeof GamesCarromRoute
   '/games/chess': typeof GamesChessRoute
+  '/games/doodle-rush': typeof GamesDoodleRushRoute
   '/games/imposta': typeof GamesImpostaRoute
   '/games/imposter': typeof GamesImposterRoute
+  '/games/letter-blitz': typeof GamesLetterBlitzRoute
   '/games/ludo': typeof GamesLudoRoute
   '/games/number-guess': typeof GamesNumberGuessRoute
   '/games/truth-or-dare': typeof GamesTruthOrDareRoute
@@ -155,8 +171,10 @@ export interface FileRoutesById {
   '/games/bottle-spin': typeof GamesBottleSpinRoute
   '/games/carrom': typeof GamesCarromRoute
   '/games/chess': typeof GamesChessRoute
+  '/games/doodle-rush': typeof GamesDoodleRushRoute
   '/games/imposta': typeof GamesImpostaRoute
   '/games/imposter': typeof GamesImposterRoute
+  '/games/letter-blitz': typeof GamesLetterBlitzRoute
   '/games/ludo': typeof GamesLudoRoute
   '/games/number-guess': typeof GamesNumberGuessRoute
   '/games/truth-or-dare': typeof GamesTruthOrDareRoute
@@ -175,8 +193,10 @@ export interface FileRouteTypes {
     | '/games/bottle-spin'
     | '/games/carrom'
     | '/games/chess'
+    | '/games/doodle-rush'
     | '/games/imposta'
     | '/games/imposter'
+    | '/games/letter-blitz'
     | '/games/ludo'
     | '/games/number-guess'
     | '/games/truth-or-dare'
@@ -193,8 +213,10 @@ export interface FileRouteTypes {
     | '/games/bottle-spin'
     | '/games/carrom'
     | '/games/chess'
+    | '/games/doodle-rush'
     | '/games/imposta'
     | '/games/imposter'
+    | '/games/letter-blitz'
     | '/games/ludo'
     | '/games/number-guess'
     | '/games/truth-or-dare'
@@ -211,8 +233,10 @@ export interface FileRouteTypes {
     | '/games/bottle-spin'
     | '/games/carrom'
     | '/games/chess'
+    | '/games/doodle-rush'
     | '/games/imposta'
     | '/games/imposter'
+    | '/games/letter-blitz'
     | '/games/ludo'
     | '/games/number-guess'
     | '/games/truth-or-dare'
@@ -230,8 +254,10 @@ export interface RootRouteChildren {
   GamesBottleSpinRoute: typeof GamesBottleSpinRoute
   GamesCarromRoute: typeof GamesCarromRoute
   GamesChessRoute: typeof GamesChessRoute
+  GamesDoodleRushRoute: typeof GamesDoodleRushRoute
   GamesImpostaRoute: typeof GamesImpostaRoute
   GamesImposterRoute: typeof GamesImposterRoute
+  GamesLetterBlitzRoute: typeof GamesLetterBlitzRoute
   GamesLudoRoute: typeof GamesLudoRoute
   GamesNumberGuessRoute: typeof GamesNumberGuessRoute
   GamesTruthOrDareRoute: typeof GamesTruthOrDareRoute
@@ -310,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesChessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/games/doodle-rush': {
+      id: '/games/doodle-rush'
+      path: '/games/doodle-rush'
+      fullPath: '/games/doodle-rush'
+      preLoaderRoute: typeof GamesDoodleRushRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/games/imposta': {
       id: '/games/imposta'
       path: '/games/imposta'
@@ -322,6 +355,13 @@ declare module '@tanstack/react-router' {
       path: '/games/imposter'
       fullPath: '/games/imposter'
       preLoaderRoute: typeof GamesImposterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/letter-blitz': {
+      id: '/games/letter-blitz'
+      path: '/games/letter-blitz'
+      fullPath: '/games/letter-blitz'
+      preLoaderRoute: typeof GamesLetterBlitzRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/ludo': {
@@ -366,8 +406,10 @@ const rootRouteChildren: RootRouteChildren = {
   GamesBottleSpinRoute: GamesBottleSpinRoute,
   GamesCarromRoute: GamesCarromRoute,
   GamesChessRoute: GamesChessRoute,
+  GamesDoodleRushRoute: GamesDoodleRushRoute,
   GamesImpostaRoute: GamesImpostaRoute,
   GamesImposterRoute: GamesImposterRoute,
+  GamesLetterBlitzRoute: GamesLetterBlitzRoute,
   GamesLudoRoute: GamesLudoRoute,
   GamesNumberGuessRoute: GamesNumberGuessRoute,
   GamesTruthOrDareRoute: GamesTruthOrDareRoute,

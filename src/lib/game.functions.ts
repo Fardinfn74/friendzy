@@ -151,6 +151,18 @@ export const updateSettingsFn = createServerFn({ method: "POST" })
             targetScore: z.union([z.literal(15), z.literal(25)]).optional(),
           })
           .optional(),
+        letterBlitzSettings: z
+          .object({
+            rounds: z.number().int().min(1).max(10).optional(),
+            roundTime: z.number().int().min(15).max(120).optional(),
+          })
+          .optional(),
+        doodleRushSettings: z
+          .object({
+            rounds: z.number().int().min(1).max(10).optional(),
+            drawTime: z.number().int().min(30).max(180).optional(),
+          })
+          .optional(),
       })
       .parse(data),
   )
@@ -647,3 +659,86 @@ export const rematchCarromFn = createServerFn({ method: "POST" })
       return failResult(error);
     }
   });
+
+/* --------------------------------------------------- letter-blitz functions --- */
+
+export const submitLetterBlitzGuessFn = createServerFn({ method: "POST" })
+  .validator((data) => z.object({ sessionToken: token, code, word: z.string().min(1).max(50) }).parse(data))
+  .handler(async ({ data }) => {
+    const engine = await import("./game-engine.server");
+    try {
+      return await engine.submitLetterBlitzGuess(data.sessionToken, data.code, data.word);
+    } catch (error) {
+      return failResult(error);
+    }
+  });
+
+export const advanceLetterBlitzRoundFn = createServerFn({ method: "POST" })
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .handler(async ({ data }) => {
+    const engine = await import("./game-engine.server");
+    try {
+      await engine.advanceLetterBlitzRound(data.sessionToken, data.code);
+      return { ok: true as const };
+    } catch (error) {
+      return failResult(error);
+    }
+  });
+
+/* ---------------------------------------------------- doodle-rush functions --- */
+
+const strokeSchema = z.object({
+  x: z.array(z.number()),
+  y: z.array(z.number()),
+  color: z.string(),
+  size: z.number(),
+  tool: z.enum(["pen", "eraser"]),
+});
+
+export const submitDoodleStrokeFn = createServerFn({ method: "POST" })
+  .validator((data) => z.object({ sessionToken: token, code, stroke: strokeSchema }).parse(data))
+  .handler(async ({ data }) => {
+    const engine = await import("./game-engine.server");
+    try {
+      await engine.submitDoodleStroke(data.sessionToken, data.code, data.stroke);
+      return { ok: true as const };
+    } catch (error) {
+      return failResult(error);
+    }
+  });
+
+export const submitDoodleGuessFn = createServerFn({ method: "POST" })
+  .validator((data) => z.object({ sessionToken: token, code, guess: z.string().min(1).max(60) }).parse(data))
+  .handler(async ({ data }) => {
+    const engine = await import("./game-engine.server");
+    try {
+      return await engine.submitDoodleGuess(data.sessionToken, data.code, data.guess);
+    } catch (error) {
+      return failResult(error);
+    }
+  });
+
+export const clearDoodleCanvasFn = createServerFn({ method: "POST" })
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .handler(async ({ data }) => {
+    const engine = await import("./game-engine.server");
+    try {
+      await engine.clearDoodleCanvas(data.sessionToken, data.code);
+      return { ok: true as const };
+    } catch (error) {
+      return failResult(error);
+    }
+  });
+
+export const advanceDoodleRoundFn = createServerFn({ method: "POST" })
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .handler(async ({ data }) => {
+    const engine = await import("./game-engine.server");
+    try {
+      await engine.advanceDoodleRound(data.sessionToken, data.code);
+      return { ok: true as const };
+    } catch (error) {
+      return failResult(error);
+    }
+  });
+

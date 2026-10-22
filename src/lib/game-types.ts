@@ -65,6 +65,8 @@ import type { TruthOrDareClientState } from "@/games/truth-or-dare/types";
 import type { ChessClientState } from "@/games/chess/types";
 import type { LudoClientState } from "@/games/ludo/types";
 import type { CarromClientState } from "@/games/carrom/types";
+import type { LetterBlitzClientState } from "@/games/letter-blitz/types";
+import type { DoodleRushClientState } from "@/games/doodle-rush/types";
 
 export type GameState = {
   code: string;
@@ -77,6 +79,8 @@ export type GameState = {
   chess?: ChessClientState | null;
   ludo?: LudoClientState | null;
   carrom?: CarromClientState | null;
+  letterBlitz?: LetterBlitzClientState | null;
+  doodleRush?: DoodleRushClientState | null;
   status: GameStatus;
   difficulty: Difficulty;
   imposterCount: number;

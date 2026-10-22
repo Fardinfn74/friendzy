@@ -1,11 +1,15 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { Target, Trophy, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { avatarEmoji, type GameState } from "@/lib/game-types";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { play } from "@/lib/sounds";
+import { Boundary3D, GraphicsToggle, useGraphicsMode } from "@/components/three/graphics";
 import { submitCarromShotResultFn, rematchCarromFn } from "@/lib/game.functions";
 import type { CarromCoin, CarromStriker } from "./types";
+
+// The 3D board (three.js) is only downloaded when a player actually uses it.
+const Carrom3DBoard = lazy(() => import("./Carrom3DBoard"));
 
 interface CarromGameProps {
   s: GameState;
@@ -42,6 +46,9 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
   const [aimVector, setAimVector] = useState<{ dx: number; dy: number } | null>(null);
   const [isDraggingAim, setIsDraggingAim] = useState(false);
   const [strikerBaselinePos, setStrikerBaselinePos] = useState(BOARD_SIZE / 2);
+  const { mode, setMode, canUse3D } = useGraphicsMode();
+  const use3D = mode === "3d" && canUse3D;
+  const [syncVersion, setSyncVersion] = useState(0);
 
   const isMyTurn = carromState?.isMyTurn ?? false;
 
@@ -51,6 +58,7 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
     coinsRef.current = JSON.parse(JSON.stringify(carromState.coins));
     strikerRef.current = JSON.parse(JSON.stringify(carromState.striker));
     setStrikerBaselinePos(carromState.striker.x);
+    setSyncVersion((v) => v + 1);
   }, [carromState, isSimulating]);
 
   useEffect(() => {
@@ -89,85 +97,99 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
 
     let animId: number;
     let strikerFoulOccurred = false;
+    const STEP_MS = 1000 / 60;
+    let lastFrameMs = performance.now();
+    let accumulator = 0;
 
     const render = () => {
-      ctx.clearRect(0, 0, BOARD_SIZE, BOARD_SIZE);
+      if (!use3D) {
+        ctx.clearRect(0, 0, BOARD_SIZE, BOARD_SIZE);
 
-      // 1. Draw Wooden Board Surface
-      ctx.fillStyle = "#ebd5ad";
-      ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
+        // 1. Draw Wooden Board Surface
+        ctx.fillStyle = "#ebd5ad";
+        ctx.fillRect(0, 0, BOARD_SIZE, BOARD_SIZE);
 
-      // Wooden border rim
-      ctx.lineWidth = 14;
-      ctx.strokeStyle = "#5a3214";
-      ctx.strokeRect(7, 7, BOARD_SIZE - 14, BOARD_SIZE - 14);
+        // Wooden border rim
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = "#5a3214";
+        ctx.strokeRect(7, 7, BOARD_SIZE - 14, BOARD_SIZE - 14);
 
-      // Inner border lines
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#8b4513";
-      ctx.strokeRect(26, 26, BOARD_SIZE - 52, BOARD_SIZE - 52);
+        // Inner border lines
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#8b4513";
+        ctx.strokeRect(26, 26, BOARD_SIZE - 52, BOARD_SIZE - 52);
 
-      // 2. Center Circle & Ornament
-      const cx = BOARD_SIZE / 2;
-      const cy = BOARD_SIZE / 2;
+        // 2. Center Circle & Ornament
+        const cx = BOARD_SIZE / 2;
+        const cy = BOARD_SIZE / 2;
 
-      ctx.beginPath();
-      ctx.arc(cx, cy, 46, 0, Math.PI * 2);
-      ctx.strokeStyle = "#9c572b";
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(cx, cy, 12, 0, Math.PI * 2);
-      ctx.fillStyle = "#c0392b";
-      ctx.fill();
-
-      // 3. Baselines & Circles
-      // Bottom baseline
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#8b4513";
-      ctx.beginPath();
-      ctx.moveTo(85, BOARD_SIZE - 75);
-      ctx.lineTo(BOARD_SIZE - 85, BOARD_SIZE - 75);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(85, BOARD_SIZE - 75, 12, 0, Math.PI * 2);
-      ctx.fillStyle = "#e67e22";
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(BOARD_SIZE - 85, BOARD_SIZE - 75, 12, 0, Math.PI * 2);
-      ctx.fillStyle = "#e67e22";
-      ctx.fill();
-      ctx.stroke();
-
-      // Top baseline
-      ctx.beginPath();
-      ctx.moveTo(85, 75);
-      ctx.lineTo(BOARD_SIZE - 85, 75);
-      ctx.stroke();
-
-      // 4. Corner Pockets
-      for (const p of POCKETS) {
         ctx.beginPath();
-        ctx.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = "#1e130c";
-        ctx.fill();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = "#3e2718";
+        ctx.arc(cx, cy, 46, 0, Math.PI * 2);
+        ctx.strokeStyle = "#9c572b";
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Pocket net pattern
         ctx.beginPath();
-        ctx.arc(p.x, p.y, POCKET_RADIUS - 6, 0, Math.PI * 2);
-        ctx.fillStyle = "#0a0604";
+        ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+        ctx.fillStyle = "#c0392b";
         ctx.fill();
+
+        // 3. Baselines & Circles
+        // Bottom baseline
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#8b4513";
+        ctx.beginPath();
+        ctx.moveTo(85, BOARD_SIZE - 75);
+        ctx.lineTo(BOARD_SIZE - 85, BOARD_SIZE - 75);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(85, BOARD_SIZE - 75, 12, 0, Math.PI * 2);
+        ctx.fillStyle = "#e67e22";
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(BOARD_SIZE - 85, BOARD_SIZE - 75, 12, 0, Math.PI * 2);
+        ctx.fillStyle = "#e67e22";
+        ctx.fill();
+        ctx.stroke();
+
+        // Top baseline
+        ctx.beginPath();
+        ctx.moveTo(85, 75);
+        ctx.lineTo(BOARD_SIZE - 85, 75);
+        ctx.stroke();
+
+        // 4. Corner Pockets
+        for (const p of POCKETS) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI * 2);
+          ctx.fillStyle = "#1e130c";
+          ctx.fill();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "#3e2718";
+          ctx.stroke();
+
+          // Pocket net pattern
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, POCKET_RADIUS - 6, 0, Math.PI * 2);
+          ctx.fillStyle = "#0a0604";
+          ctx.fill();
+        }
       }
 
-      // 5. Physics Update
-      if (isSimulating) {
+      // 5. Physics Update, in fixed 60 Hz steps so a shot plays out the same on every screen refresh rate
+      const nowMs = performance.now();
+      const frameMs = Math.min(100, nowMs - lastFrameMs);
+      lastFrameMs = nowMs;
+      accumulator = isSimulating ? accumulator + frameMs : 0;
+      let steps = 0;
+      while (accumulator >= STEP_MS && steps < 6) {
+        accumulator -= STEP_MS;
+        steps++;
+      }
+      for (let step = 0; step < steps; step++) {
         const coins = coinsRef.current;
         const striker = strikerRef.current;
         const friction = 0.984;
@@ -346,76 +368,79 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
 
         if (!strikerMoving && !coinsMoving) {
           onShotFinished(strikerFoulOccurred);
+          break;
         }
       }
 
-      // 6. Draw Coins
-      for (const c of coinsRef.current) {
-        if (c.pocketed) continue;
+      if (!use3D) {
+        // 6. Draw Coins
+        for (const c of coinsRef.current) {
+          if (c.pocketed) continue;
 
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
-
-        if (c.type === "queen") {
-          ctx.fillStyle = "#e74c3c";
-          ctx.fill();
-          ctx.lineWidth = 3;
-          ctx.strokeStyle = "#f1c40f";
-          ctx.stroke();
-          // Queen crown dot
           ctx.beginPath();
-          ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
-          ctx.fillStyle = "#f1c40f";
-          ctx.fill();
-        } else if (c.type === "white") {
-          ctx.fillStyle = "#fdfefe";
-          ctx.fill();
-          ctx.lineWidth = 2.5;
-          ctx.strokeStyle = "#bdc3c7";
-          ctx.stroke();
-        } else {
-          ctx.fillStyle = "#2c3e50";
-          ctx.fill();
-          ctx.lineWidth = 2.5;
-          ctx.strokeStyle = "#1a252f";
-          ctx.stroke();
+          ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
+
+          if (c.type === "queen") {
+            ctx.fillStyle = "#e74c3c";
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#f1c40f";
+            ctx.stroke();
+            // Queen crown dot
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = "#f1c40f";
+            ctx.fill();
+          } else if (c.type === "white") {
+            ctx.fillStyle = "#fdfefe";
+            ctx.fill();
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = "#bdc3c7";
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = "#2c3e50";
+            ctx.fill();
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = "#1a252f";
+            ctx.stroke();
+          }
         }
-      }
 
-      // 7. Draw Striker
-      const striker = strikerRef.current;
-      if (striker.active) {
-        ctx.beginPath();
-        ctx.arc(striker.x, striker.y, striker.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "#f39c12";
-        ctx.fill();
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "#d35400";
-        ctx.stroke();
+        // 7. Draw Striker
+        const striker = strikerRef.current;
+        if (striker.active) {
+          ctx.beginPath();
+          ctx.arc(striker.x, striker.y, striker.radius, 0, Math.PI * 2);
+          ctx.fillStyle = "#f39c12";
+          ctx.fill();
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "#d35400";
+          ctx.stroke();
 
-        // Striker inner circle
-        ctx.beginPath();
-        ctx.arc(striker.x, striker.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
-      }
+          // Striker inner circle
+          ctx.beginPath();
+          ctx.arc(striker.x, striker.y, 8, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+        }
 
-      // 8. Draw Aiming Slingshot Arrow & Trajectory Guideline
-      if (aimVector && isDraggingAim && !isSimulating && isMyTurn) {
-        ctx.beginPath();
-        ctx.moveTo(striker.x, striker.y);
-        ctx.lineTo(striker.x + aimVector.dx, striker.y + aimVector.dy);
-        ctx.lineWidth = 3.5;
-        ctx.strokeStyle = "rgba(230, 126, 34, 0.85)";
-        ctx.setLineDash([6, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        // 8. Draw Aiming Slingshot Arrow & Trajectory Guideline
+        if (aimVector && isDraggingAim && !isSimulating && isMyTurn) {
+          ctx.beginPath();
+          ctx.moveTo(striker.x, striker.y);
+          ctx.lineTo(striker.x + aimVector.dx, striker.y + aimVector.dy);
+          ctx.lineWidth = 3.5;
+          ctx.strokeStyle = "rgba(230, 126, 34, 0.85)";
+          ctx.setLineDash([6, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
 
-        // Target Arrow
-        ctx.beginPath();
-        ctx.arc(striker.x + aimVector.dx, striker.y + aimVector.dy, 6, 0, Math.PI * 2);
-        ctx.fillStyle = "#e67e22";
-        ctx.fill();
+          // Target Arrow
+          ctx.beginPath();
+          ctx.arc(striker.x + aimVector.dx, striker.y + aimVector.dy, 6, 0, Math.PI * 2);
+          ctx.fillStyle = "#e67e22";
+          ctx.fill();
+        }
       }
 
       animId = requestAnimationFrame(render);
@@ -423,7 +448,7 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
 
     animId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animId);
-  }, [isSimulating, aimVector, isDraggingAim, isMyTurn, onShotFinished]);
+  }, [isSimulating, aimVector, isDraggingAim, isMyTurn, onShotFinished, use3D]);
 
   if (!carromState) {
     return (
@@ -442,32 +467,18 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
     strikerRef.current.y = BOARD_SIZE - 75;
   };
 
-  // Canvas Mouse / Touch events for aiming and flicking
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Aiming, in board coordinates (0..500). Shared by the 2D canvas and the 3D board.
+  const aimStart = (clickX: number, clickY: number) => {
     if (!isMyTurn || isSimulating) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scale = BOARD_SIZE / rect.width;
-    const clickX = (e.clientX - rect.left) * scale;
-    const clickY = (e.clientY - rect.top) * scale;
-
     const striker = strikerRef.current;
-    if (Math.hypot(clickX - striker.x, clickY - striker.y) < striker.radius * 2) {
+    if (Math.hypot(clickX - striker.x, clickY - striker.y) < striker.radius * 2.4) {
       setIsDraggingAim(true);
       play("pick");
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const aimMove = (curX: number, curY: number) => {
     if (!isDraggingAim || !isMyTurn || isSimulating) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scale = BOARD_SIZE / rect.width;
-    const curX = (e.clientX - rect.left) * scale;
-    const curY = (e.clientY - rect.top) * scale;
-
     const striker = strikerRef.current;
     // Pull-back vector (slingshot direction is inverted for natural flick)
     const pullX = striker.x - curX;
@@ -485,7 +496,7 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
     });
   };
 
-  const handleMouseUp = () => {
+  const aimRelease = () => {
     if (!isDraggingAim || !aimVector || isSimulating || !isMyTurn) {
       setIsDraggingAim(false);
       setAimVector(null);
@@ -501,6 +512,18 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
     setIsSimulating(true);
     play("clue");
   };
+
+  // 2D canvas: pointer events (mouse AND touch). The old mouse-only handlers never fired while dragging a finger.
+  const canvasPoint = (e: React.PointerEvent<HTMLCanvasElement>): [number, number] => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const scale = BOARD_SIZE / rect.width;
+    return [(e.clientX - rect.left) * scale, (e.clientY - rect.top) * scale];
+  };
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    aimStart(...canvasPoint(e));
+  };
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => aimMove(...canvasPoint(e));
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
@@ -530,15 +553,47 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
           </div>
         </div>
 
-        {/* The Carrom Canvas */}
-        <div className="relative aspect-square max-w-[440px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-950 shadow-inner bg-[#ebd5ad] select-none">
+        {canUse3D && (
+          <div className="mb-2 flex justify-end">
+            <GraphicsToggle mode={mode} setMode={setMode} canUse3D={canUse3D} />
+          </div>
+        )}
+
+        {use3D && (
+          <Boundary3D onError={() => setMode("2d")}>
+            <Suspense
+              fallback={
+                <div className="aspect-square max-w-[480px] mx-auto rounded-2xl border-4 border-amber-950 grid place-items-center text-sm font-bold text-muted-foreground">
+                  Loading 3D board…
+                </div>
+              }
+            >
+              <Carrom3DBoard
+                coinsRef={coinsRef}
+                strikerRef={strikerRef}
+                aimVector={aimVector}
+                isDraggingAim={isDraggingAim}
+                isSimulating={isSimulating}
+                isMyTurn={isMyTurn}
+                renderKey={`${syncVersion}-${strikerBaselinePos}`}
+                onAimStart={aimStart}
+                onAimMove={aimMove}
+                onAimEnd={aimRelease}
+              />
+            </Suspense>
+          </Boundary3D>
+        )}
+
+        {/* The Carrom Canvas (2D board; in 3D mode it stays mounted but hidden so the same physics keeps running) */}
+        <div className={use3D ? "hidden" : "relative aspect-square max-w-[440px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-950 shadow-inner bg-[#ebd5ad] select-none"}>
           <canvas
             ref={canvasRef}
             width={BOARD_SIZE}
             height={BOARD_SIZE}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={aimRelease}
+            onPointerCancel={aimRelease}
             className="w-full h-full cursor-crosshair touch-none"
           />
         </div>
