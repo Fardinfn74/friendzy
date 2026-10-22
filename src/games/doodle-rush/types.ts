@@ -32,9 +32,13 @@ export interface DoodleRushRound {
   drawerName: string;
   word: string | null;   // null for all but drawer until round ends
   revealedWord: string | null;  // revealed after round
+  wordLength: number;
+  revealedIndices: number[]; // indices of letters revealed randomly
+  wordMask: string; // e.g. "E _ _ P _ _ _ T"
+  latestCorrectGuesser: { displayName: string; submittedAt: string } | null;
   strokes: DrawStroke[];
   guesses: DoodleRushGuess[];
-  winnerIds: string[];   // first to guess correctly
+  winnerIds: string[];   // players who guessed correctly
   endsAt: string | null;
   ended: boolean;
 }
@@ -43,7 +47,9 @@ export interface DoodleRushClientState {
   phase: DoodleRushPhase;
   settings: DoodleRushSettings;
   currentRound: (Omit<DoodleRushRound, "word"> & { word: string | null }) | null;
-  scores: Record<string, number>;
+  scores: Record<string, number>; // Artist scores (how many people correctly guessed their drawings)
+  guesserScores?: Record<string, number>; // How many drawings this player guessed correctly
+  drawerNames?: Record<string, string>;
   roundNumber: number;
   totalRounds: number;
   countdownEndsAt: string | null;
@@ -54,7 +60,9 @@ export interface DoodleRushServerData {
   settings: DoodleRushSettings;
   phase: DoodleRushPhase;
   currentRound: DoodleRushRound | null;
-  scores: Record<string, number>;
+  scores: Record<string, number>; // Artist scores: number of correct guesses on their drawings
+  guesserScores: Record<string, number>;
+  drawerNames: Record<string, string>;
   roundNumber: number;
   drawerOrder: string[];  // profile_ids in order
   drawerIndex: number;

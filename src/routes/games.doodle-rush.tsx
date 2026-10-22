@@ -60,7 +60,13 @@ function DoodleRushGameHubPage() {
         {/* Game Header */}
         <div className="text-center py-4">
           <div className="mx-auto mb-4 grid size-24 place-items-center rounded-3xl border-3 border-border bg-violet-400 text-ink shadow-panel transform -rotate-3 p-3">
-            <span className="text-5xl select-none">🎨</span>
+            <img
+              src="/stickers/game-doodle-rush.svg"
+              alt="Doodle Rush"
+              width={64}
+              height={64}
+              className="size-16 select-none drop-shadow"
+            />
           </div>
           <h1 className="font-display text-4xl tracking-tight text-foreground">Doodle Rush</h1>
           <p className="mt-1 font-semibold text-sm text-muted-foreground">
@@ -104,9 +110,9 @@ function DoodleRushGameHubPage() {
                 <Trophy className="size-4" />
               </div>
               <div>
-                <p className="font-bold text-foreground">3. First to Guess Wins Most</p>
+                <p className="font-bold text-foreground">3. Majority Guesses Crown the Artist</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  The first player to guess correctly gets 4 points! Other correct guessers get 2 points, and the drawer gets bonus points for each correct guess.
+                  The winner is the Great Artist whose drawings had the majority of correct guesses! For example, an artist with 5 correct guesses will take 1st place, and an artist with 3 guesses will take 2nd place.
                 </p>
               </div>
             </div>

@@ -459,16 +459,16 @@ async function updateSettingsImpl(
     const existing = (game.game_settings as Record<string, unknown>) || {};
     patch["game_settings"] = {
       ...((patch["game_settings"] as Record<string, unknown>) || existing),
-      letterBlitzRounds: settings.letterBlitzSettings.rounds ?? existing.letterBlitzRounds ?? 5,
-      letterBlitzRoundTime: settings.letterBlitzSettings.roundTime ?? existing.letterBlitzRoundTime ?? 45,
+      letterBlitzRounds: settings.letterBlitzSettings.rounds ?? existing["letterBlitzRounds"] ?? 5,
+      letterBlitzRoundTime: settings.letterBlitzSettings.roundTime ?? existing["letterBlitzRoundTime"] ?? 45,
     };
   }
   if (settings.doodleRushSettings) {
     const existing = (game.game_settings as Record<string, unknown>) || {};
     patch["game_settings"] = {
       ...((patch["game_settings"] as Record<string, unknown>) || existing),
-      doodleRushRounds: settings.doodleRushSettings.rounds ?? existing.doodleRushRounds ?? 3,
-      doodleRushDrawTime: settings.doodleRushSettings.drawTime ?? existing.doodleRushDrawTime ?? 80,
+      doodleRushRounds: settings.doodleRushSettings.rounds ?? existing["doodleRushRounds"] ?? 3,
+      doodleRushDrawTime: settings.doodleRushSettings.drawTime ?? existing["doodleRushDrawTime"] ?? 80,
     };
   }
   await patchGame(game.id, patch);

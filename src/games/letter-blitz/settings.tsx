@@ -14,11 +14,11 @@ const TIME_OPTIONS = [30, 45, 60] as const;
 
 export function LetterBlitzSettingsView({ s, token }: LetterBlitzSettingsProps) {
   const updateSettings = useServerFn(updateSettingsFn);
-  const settings = s.gameSettings;
+  const settings = (s.gameSettings ?? {}) as Record<string, unknown>;
   const [saving, setSaving] = useState(false);
 
-  const currentRounds = Number(settings?.letterBlitzRounds ?? 5);
-  const currentTime = Number(settings?.letterBlitzRoundTime ?? 45);
+  const currentRounds = Number(settings["letterBlitzRounds"] ?? 5);
+  const currentTime = Number(settings["letterBlitzRoundTime"] ?? 45);
 
   async function handleChange(key: string, value: number) {
     if (!s.me.isHost) return;

@@ -9,18 +9,16 @@ interface DoodleRushSettingsProps {
   token: string;
 }
 
-const ROUND_OPTIONS = [2, 3, 5] as const;
 const TIME_OPTIONS = [60, 80, 120] as const;
 
 export function DoodleRushSettingsView({ s, token }: DoodleRushSettingsProps) {
   const updateSettings = useServerFn(updateSettingsFn);
-  const settings = s.gameSettings;
+  const settings = (s.gameSettings ?? {}) as Record<string, unknown>;
   const [saving, setSaving] = useState(false);
 
-  const currentRounds = Number(settings?.doodleRushRounds ?? 3);
-  const currentTime = Number(settings?.doodleRushDrawTime ?? 80);
+  const currentTime = Number(settings["doodleRushDrawTime"] ?? 80);
 
-  async function handleChange(key: string, value: number) {
+  async function handleTimeChange(value: number) {
     if (!s.me.isHost) return;
     setSaving(true);
     try {
@@ -29,8 +27,8 @@ export function DoodleRushSettingsView({ s, token }: DoodleRushSettingsProps) {
           sessionToken: token,
           code: s.code,
           doodleRushSettings: {
-            rounds: key === "doodleRushRounds" ? value : currentRounds,
-            drawTime: key === "doodleRushDrawTime" ? value : currentTime,
+            rounds: 1,
+            drawTime: value,
           },
         },
       });
@@ -41,22 +39,16 @@ export function DoodleRushSettingsView({ s, token }: DoodleRushSettingsProps) {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <p className="font-display font-bold text-sm">Rounds per Player</p>
-        <div className="flex gap-2">
-          {ROUND_OPTIONS.map((n) => (
-            <Button
-              key={n}
-              size="sm"
-              variant={currentRounds === n ? "default" : "secondary"}
-              onClick={() => handleChange("doodleRushRounds", n)}
-              disabled={!s.me.isHost || saving}
-              className="flex-1"
-            >
-              {n}
-            </Button>
-          ))}
+      <div className="space-y-1.5 p-3.5 rounded-2xl bg-secondary/40 border border-border/50">
+        <div className="flex items-center justify-between">
+          <span className="font-display font-bold text-sm">Total Drawing Rounds</span>
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+            {s.players.length} {s.players.length === 1 ? "Round" : "Rounds"}
+          </span>
         </div>
+        <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+          Every player gets exactly 1 chance to draw their secret word while others guess. Winner is crowned The Great Artist!
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -67,7 +59,7 @@ export function DoodleRushSettingsView({ s, token }: DoodleRushSettingsProps) {
               key={t}
               size="sm"
               variant={currentTime === t ? "default" : "secondary"}
-              onClick={() => handleChange("doodleRushDrawTime", t)}
+              onClick={() => handleTimeChange(t)}
               disabled={!s.me.isHost || saving}
               className="flex-1"
             >

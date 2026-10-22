@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- White die-cut outline -->
+  <path d="M 20,10 L 80,10 C 90,10 94,18 92,28 L 84,82 C 82,92 72,94 62,94 L 18,94 C 8,94 6,84 8,74 L 14,18 C 15,12 17,10 20,10 Z"
+        fill="#ffffff" stroke="#1b1b2f" stroke-width="6" stroke-linejoin="round" />
+
+  <!-- Speed / Blitz trails -->
+  <line x1="8" y1="36" x2="22" y2="36" stroke="#1b1b2f" stroke-width="3" stroke-linecap="round" />
+  <line x1="6" y1="44" x2="18" y2="44" stroke="#1b1b2f" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Left Letter Tile (B) -->
+  <rect x="18" y="28" width="30" height="32" rx="7" fill="#2ba39b" stroke="#1b1b2f" stroke-width="3.5" transform="rotate(-8 33 44)" />
+  <rect x="21" y="31" width="24" height="6" rx="3" fill="#ffffff" opacity="0.3" transform="rotate(-8 33 44)" />
+  <text x="31" y="52" text-anchor="middle" font-family="'Lilita One', 'Fredoka', 'Outfit', sans-serif" font-weight="900" font-size="22" fill="#ffffff" stroke="#1b1b2f" stroke-width="1.5" paint-order="stroke fill" transform="rotate(-8 33 44)">B</text>
+
+  <!-- Right Letter Tile (Z) -->
+  <rect x="52" y="36" width="30" height="32" rx="7" fill="#f2b632" stroke="#1b1b2f" stroke-width="3.5" transform="rotate(8 67 52)" />
+  <rect x="55" y="39" width="24" height="6" rx="3" fill="#ffffff" opacity="0.4" transform="rotate(8 67 52)" />
+  <text x="65" y="60" text-anchor="middle" font-family="'Lilita One', 'Fredoka', 'Outfit', sans-serif" font-weight="900" font-size="22" fill="#1b1b2f" transform="rotate(8 67 52)">Z</text>
+
+  <!-- Electric Blitz Lightning Bolt across tiles -->
+  <polygon points="52,12 40,38 48,38 42,62 58,32 50,32" fill="#ff4d4d" stroke="#1b1b2f" stroke-width="3" stroke-linejoin="round" />
+  <polygon points="51,16 43,36 49,36 45,52 55,34 49,34" fill="#fef08a" />
+
+  <!-- Sparkles -->
+  <polygon points="78,16 80,22 86,24 80,26 78,32 76,26 70,24 76,22" fill="#ffffff" stroke="#1b1b2f" stroke-width="2" />
+  <polygon points="26,78 28,82 32,83 28,85 26,89 25,85 21,83 25,82" fill="#f2b632" stroke="#1b1b2f" stroke-width="1.8" />
+  <circle cx="82" cy="74" r="3" fill="#ff4d4d" stroke="#1b1b2f" stroke-width="1.8" />
+</svg>

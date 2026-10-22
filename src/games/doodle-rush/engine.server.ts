@@ -48,40 +48,45 @@ function pickWord(usedWords: string[]): string {
 
 // ── parse/save ────────────────────────────────────────────────────────────────
 export function parseDoodleRushData(game: AnyGame): DoodleRushServerData {
-  const raw = game.game_settings ?? {};
+  const raw = (game.game_settings ?? {}) as Record<string, unknown>;
   return {
-    settings: (raw.doodleRushSettings as DoodleRushSettings) ?? DEFAULT_DOODLE_RUSH_SETTINGS,
-    phase: (raw.doodleRushPhase as DoodleRushServerData["phase"]) ?? "lobby",
-    currentRound: (raw.doodleRushRound as DoodleRushRound) ?? null,
-    scores: (raw.doodleRushScores as Record<string, number>) ?? {},
-    roundNumber: (raw.doodleRushRoundNumber as number) ?? 0,
-    drawerOrder: (raw.doodleRushDrawerOrder as string[]) ?? [],
-    drawerIndex: (raw.doodleRushDrawerIndex as number) ?? 0,
-    usedWords: (raw.doodleRushUsedWords as string[]) ?? [],
-    countdownEndsAt: (raw.doodleRushCountdownEndsAt as string) ?? null,
+    settings: (raw["doodleRushSettings"] as DoodleRushSettings) ?? DEFAULT_DOODLE_RUSH_SETTINGS,
+    phase: (raw["doodleRushPhase"] as DoodleRushServerData["phase"]) ?? "lobby",
+    currentRound: (raw["doodleRushRound"] as DoodleRushRound) ?? null,
+    scores: (raw["doodleRushScores"] as Record<string, number>) ?? {},
+    guesserScores: (raw["doodleRushGuesserScores"] as Record<string, number>) ?? {},
+    drawerNames: (raw["doodleRushDrawerNames"] as Record<string, string>) ?? {},
+    roundNumber: (raw["doodleRushRoundNumber"] as number) ?? 0,
+    drawerOrder: (raw["doodleRushDrawerOrder"] as string[]) ?? [],
+    drawerIndex: (raw["doodleRushDrawerIndex"] as number) ?? 0,
+    usedWords: (raw["doodleRushUsedWords"] as string[]) ?? [],
+    countdownEndsAt: (raw["doodleRushCountdownEndsAt"] as string) ?? null,
   };
 }
 
 async function saveDoodleRushData(gameId: string, data: Partial<DoodleRushServerData>) {
-  const { data: current } = await supabaseAdmin
+  const { data: current } = await (supabaseAdmin as any)
     .from("games")
     .select("game_settings")
     .eq("id", gameId)
     .single();
 
   const keys: Record<string, unknown> = {};
-  if (data.settings !== undefined) keys.doodleRushSettings = data.settings;
-  if (data.phase !== undefined) keys.doodleRushPhase = data.phase;
-  if (data.currentRound !== undefined) keys.doodleRushRound = data.currentRound;
-  if (data.scores !== undefined) keys.doodleRushScores = data.scores;
-  if (data.roundNumber !== undefined) keys.doodleRushRoundNumber = data.roundNumber;
-  if (data.drawerOrder !== undefined) keys.doodleRushDrawerOrder = data.drawerOrder;
-  if (data.drawerIndex !== undefined) keys.doodleRushDrawerIndex = data.drawerIndex;
-  if (data.usedWords !== undefined) keys.doodleRushUsedWords = data.usedWords;
-  if (data.countdownEndsAt !== undefined) keys.doodleRushCountdownEndsAt = data.countdownEndsAt;
+  if (data.settings !== undefined) keys["doodleRushSettings"] = data.settings;
+  if (data.phase !== undefined) keys["doodleRushPhase"] = data.phase;
+  if (data.currentRound !== undefined) keys["doodleRushRound"] = data.currentRound;
+  if (data.scores !== undefined) keys["doodleRushScores"] = data.scores;
+  if (data.guesserScores !== undefined) keys["doodleRushGuesserScores"] = data.guesserScores;
+  if (data.drawerNames !== undefined) keys["doodleRushDrawerNames"] = data.drawerNames;
+  if (data.roundNumber !== undefined) keys["doodleRushRoundNumber"] = data.roundNumber;
+  if (data.drawerOrder !== undefined) keys["doodleRushDrawerOrder"] = data.drawerOrder;
+  if (data.drawerIndex !== undefined) keys["doodleRushDrawerIndex"] = data.drawerIndex;
+  if (data.usedWords !== undefined) keys["doodleRushUsedWords"] = data.usedWords;
+  if (data.countdownEndsAt !== undefined) keys["doodleRushCountdownEndsAt"] = data.countdownEndsAt;
 
-  const merged = { ...(current?.game_settings ?? {}), ...keys };
-  const { error } = await supabaseAdmin
+  const currentSettings = ((current as any)?.game_settings ?? {}) as Record<string, unknown>;
+  const merged = { ...currentSettings, ...keys };
+  const { error } = await (supabaseAdmin as any)
     .from("games")
     .update({ game_settings: merged })
     .eq("id", gameId);
@@ -110,8 +115,10 @@ export function buildDoodleRushClientState(
     settings: data.settings,
     currentRound: round,
     scores: data.scores,
+    guesserScores: data.guesserScores,
+    drawerNames: data.drawerNames,
     roundNumber: data.roundNumber,
-    totalRounds: data.settings.rounds * data.drawerOrder.length,
+    totalRounds: data.drawerOrder.length, // Each player has exactly 1 drawing turn
     countdownEndsAt: data.countdownEndsAt,
     isDrawer,
   };
@@ -124,26 +131,43 @@ export async function startDoodleRushMatch(
 ): Promise<void> {
   if (players.length < 2) fail("Doodle Rush requires at least 2 players.");
 
-  const raw = game.game_settings ?? {};
+  const raw = (game.game_settings ?? {}) as Record<string, unknown>;
   const settings: DoodleRushSettings = {
-    rounds: Number(raw.doodleRushRounds ?? DEFAULT_DOODLE_RUSH_SETTINGS.rounds),
-    drawTime: Number(raw.doodleRushDrawTime ?? DEFAULT_DOODLE_RUSH_SETTINGS.drawTime),
+    rounds: 1, // 1 turn per player
+    drawTime: Number(raw["doodleRushDrawTime"] ?? DEFAULT_DOODLE_RUSH_SETTINGS.drawTime),
   };
 
   const initScores: Record<string, number> = {};
-  for (const p of players) initScores[p.profile_id] = 0;
+  const initGuesserScores: Record<string, number> = {};
+  const drawerNames: Record<string, string> = {};
+  for (const p of players) {
+    initScores[p.profile_id] = 0;
+    initGuesserScores[p.profile_id] = 0;
+    drawerNames[p.profile_id] = p.profiles?.display_name ?? "Player";
+  }
 
   const drawerOrder = shuffle(players.map((p) => p.profile_id));
-  const firstDrawer = players.find((p) => p.profile_id === drawerOrder[0]!);
+  const firstDrawerId = drawerOrder[0]!;
+  const firstDrawerName = drawerNames[firstDrawerId] ?? "Unknown";
   const word = pickWord([]);
   const countdownEndsAt = new Date(Date.now() + 3000).toISOString();
+  const initialMask = word
+    .trim()
+    .toUpperCase()
+    .split("")
+    .map((c) => (c === " " ? " " : "_"))
+    .join(" ");
 
   const round: DoodleRushRound = {
     roundNumber: 1,
-    drawerId: drawerOrder[0]!,
-    drawerName: firstDrawer?.profiles?.display_name ?? "Unknown",
+    drawerId: firstDrawerId,
+    drawerName: firstDrawerName,
     word,
     revealedWord: null,
+    wordLength: word.length,
+    revealedIndices: [],
+    wordMask: initialMask,
+    latestCorrectGuesser: null,
     strokes: [],
     guesses: [],
     winnerIds: [],
@@ -156,6 +180,8 @@ export async function startDoodleRushMatch(
     phase: "countdown",
     currentRound: round,
     scores: initScores,
+    guesserScores: initGuesserScores,
+    drawerNames,
     roundNumber: 1,
     drawerOrder,
     drawerIndex: 0,
@@ -211,7 +237,8 @@ export async function submitDoodleGuess(
   const alreadyCorrect = round.winnerIds.includes(profileId);
   if (alreadyCorrect) return { ok: false, correct: false, error: "You already guessed correctly!" };
 
-  const correct = guessText.trim().toLowerCase() === (round.word ?? "").toLowerCase();
+  const secret = (round.word ?? "").trim().toUpperCase();
+  const correct = guessText.trim().toUpperCase() === secret;
   const newGuess: DoodleRushGuess = {
     profileId,
     displayName,
@@ -223,13 +250,35 @@ export async function submitDoodleGuess(
   const updatedGuesses = [...round.guesses, newGuess];
   let updatedWinners = [...round.winnerIds];
   let updatedScores = { ...data.scores };
+  let updatedGuesserScores = { ...data.guesserScores };
+  let updatedRevealedIndices = [...(round.revealedIndices ?? [])];
+  let updatedWordMask = round.wordMask ?? "";
+  let latestCorrectGuesser: { displayName: string; submittedAt: string } | null = null;
 
   if (correct) {
     updatedWinners.push(profileId);
-    // Points: 1st correct = 4pts, subsequent = 2pts. Drawer gets 1pt per correct guesser.
-    const pts = updatedWinners.length === 1 ? 4 : 2;
-    updatedScores[profileId] = (updatedScores[profileId] ?? 0) + pts;
+    // Great Artist scoring: The drawer gains 1 point for every player who correctly guesses their drawing!
+    // The player whose drawings receive the most/majority correct guesses wins the game.
     updatedScores[round.drawerId] = (updatedScores[round.drawerId] ?? 0) + 1;
+    updatedGuesserScores[profileId] = (updatedGuesserScores[profileId] ?? 0) + 1;
+
+    // Reveal a letter of the word randomly for the remaining guessers!
+    const unrevealed: number[] = [];
+    for (let i = 0; i < secret.length; i++) {
+      if (secret[i] !== " " && !updatedRevealedIndices.includes(i)) {
+        unrevealed.push(i);
+      }
+    }
+    if (unrevealed.length > 0) {
+      const pickIdx = unrevealed[Math.floor(Math.random() * unrevealed.length)]!;
+      updatedRevealedIndices.push(pickIdx);
+    }
+    updatedWordMask = secret
+      .split("")
+      .map((ch, i) => (ch === " " ? " " : updatedRevealedIndices.includes(i) ? ch : "_"))
+      .join(" ");
+
+    latestCorrectGuesser = { displayName, submittedAt: new Date().toISOString() };
   }
 
   const totalGuessers = Object.keys(data.scores).length - 1; // exclude drawer
@@ -239,6 +288,9 @@ export async function submitDoodleGuess(
     ...round,
     guesses: updatedGuesses,
     winnerIds: updatedWinners,
+    revealedIndices: updatedRevealedIndices,
+    wordMask: updatedWordMask,
+    latestCorrectGuesser: latestCorrectGuesser ?? round.latestCorrectGuesser ?? null,
     ended: allGuessed,
     revealedWord: allGuessed ? round.word : null,
   };
@@ -246,6 +298,7 @@ export async function submitDoodleGuess(
   await saveDoodleRushData(game.id, {
     currentRound: updatedRound,
     scores: updatedScores,
+    guesserScores: updatedGuesserScores,
     ...(allGuessed ? { phase: "round_end" } : {}),
   });
 
@@ -255,7 +308,8 @@ export async function submitDoodleGuess(
 export async function advanceDoodleRound(game: AnyGame): Promise<void> {
   const data = parseDoodleRushData(game);
   const nextIndex = data.drawerIndex + 1;
-  const totalTurns = data.settings.rounds * data.drawerOrder.length;
+  // Each player has exactly 1 chance of drawing: total rounds = number of players!
+  const totalTurns = data.drawerOrder.length;
   const nextRoundNum = data.roundNumber + 1;
 
   if (nextRoundNum > totalTurns) {
@@ -274,16 +328,26 @@ export async function advanceDoodleRound(game: AnyGame): Promise<void> {
 
   const drawerIndex = nextIndex % data.drawerOrder.length;
   const drawerId = data.drawerOrder[drawerIndex]!;
+  const drawerName = data.drawerNames?.[drawerId] ?? `Player ${drawerIndex + 1}`;
 
   const word = pickWord(data.usedWords);
+  const initialMask = word
+    .trim()
+    .toUpperCase()
+    .split("")
+    .map((c) => (c === " " ? " " : "_"))
+    .join(" ");
 
-  // Find drawer name from game — we pass all players in game_settings context
   const round: DoodleRushRound = {
     roundNumber: nextRoundNum,
     drawerId,
-    drawerName: `Player ${drawerIndex + 1}`,
+    drawerName,
     word,
     revealedWord: null,
+    wordLength: word.length,
+    revealedIndices: [],
+    wordMask: initialMask,
+    latestCorrectGuesser: null,
     strokes: [],
     guesses: [],
     winnerIds: [],

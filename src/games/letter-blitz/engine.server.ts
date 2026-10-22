@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { validateWordDuelAttempt } from "@/games/word-duel/dictionary.server";
 import {
   LETTERS,
   DEFAULT_LETTER_BLITZ_SETTINGS,
@@ -45,53 +46,45 @@ function fail(msg: string): never {
 
 // ── parse/save ────────────────────────────────────────────────────────────────
 export function parseLetterBlitzData(game: AnyGame): LetterBlitzServerData {
-  const raw = game.game_settings ?? {};
+  const raw = (game.game_settings ?? {}) as Record<string, unknown>;
   return {
-    settings: (raw.letterBlitzSettings as LetterBlitzSettings) ?? DEFAULT_LETTER_BLITZ_SETTINGS,
-    phase: (raw.letterBlitzPhase as LetterBlitzServerData["phase"]) ?? "lobby",
-    currentRound: (raw.letterBlitzRound as LetterBlitzRound) ?? null,
-    scores: (raw.letterBlitzScores as Record<string, number>) ?? {},
-    roundNumber: (raw.letterBlitzRoundNumber as number) ?? 0,
-    usedLetterPairs: (raw.letterBlitzUsedPairs as Array<[string, string]>) ?? [],
-    roundEndsAt: (raw.letterBlitzRoundEndsAt as string) ?? null,
-    countdownEndsAt: (raw.letterBlitzCountdownEndsAt as string) ?? null,
+    settings: (raw["letterBlitzSettings"] as LetterBlitzSettings) ?? DEFAULT_LETTER_BLITZ_SETTINGS,
+    phase: (raw["letterBlitzPhase"] as LetterBlitzServerData["phase"]) ?? "lobby",
+    currentRound: (raw["letterBlitzRound"] as LetterBlitzRound) ?? null,
+    scores: (raw["letterBlitzScores"] as Record<string, number>) ?? {},
+    roundNumber: (raw["letterBlitzRoundNumber"] as number) ?? 0,
+    usedLetterPairs: (raw["letterBlitzUsedPairs"] as Array<[string, string]>) ?? [],
+    roundEndsAt: (raw["letterBlitzRoundEndsAt"] as string) ?? null,
+    countdownEndsAt: (raw["letterBlitzCountdownEndsAt"] as string) ?? null,
   };
 }
 
 async function saveLetterBlitzData(gameId: string, data: Partial<LetterBlitzServerData>) {
-  const { error } = await supabaseAdmin
-    .from("games")
-    .update({
-      game_settings: supabaseAdmin.rpc as unknown as Record<string, unknown>,
-    })
-    .eq("id", gameId);
-
-  // Use a proper merge approach via raw update with jsonb merge
   const keys: Record<string, unknown> = {};
-  if (data.settings !== undefined) keys.letterBlitzSettings = data.settings;
-  if (data.phase !== undefined) keys.letterBlitzPhase = data.phase;
-  if (data.currentRound !== undefined) keys.letterBlitzRound = data.currentRound;
-  if (data.scores !== undefined) keys.letterBlitzScores = data.scores;
-  if (data.roundNumber !== undefined) keys.letterBlitzRoundNumber = data.roundNumber;
-  if (data.usedLetterPairs !== undefined) keys.letterBlitzUsedPairs = data.usedLetterPairs;
-  if (data.roundEndsAt !== undefined) keys.letterBlitzRoundEndsAt = data.roundEndsAt;
-  if (data.countdownEndsAt !== undefined) keys.letterBlitzCountdownEndsAt = data.countdownEndsAt;
+  if (data.settings !== undefined) keys["letterBlitzSettings"] = data.settings;
+  if (data.phase !== undefined) keys["letterBlitzPhase"] = data.phase;
+  if (data.currentRound !== undefined) keys["letterBlitzRound"] = data.currentRound;
+  if (data.scores !== undefined) keys["letterBlitzScores"] = data.scores;
+  if (data.roundNumber !== undefined) keys["letterBlitzRoundNumber"] = data.roundNumber;
+  if (data.usedLetterPairs !== undefined) keys["letterBlitzUsedPairs"] = data.usedLetterPairs;
+  if (data.roundEndsAt !== undefined) keys["letterBlitzRoundEndsAt"] = data.roundEndsAt;
+  if (data.countdownEndsAt !== undefined) keys["letterBlitzCountdownEndsAt"] = data.countdownEndsAt;
 
   // Fetch current settings and merge
-  const { data: current } = await supabaseAdmin
+  const { data: current } = await (supabaseAdmin as any)
     .from("games")
     .select("game_settings")
     .eq("id", gameId)
     .single();
 
-  const merged = { ...(current?.game_settings ?? {}), ...keys };
-  const { error: err2 } = await supabaseAdmin
+  const currentSettings = ((current as any)?.game_settings ?? {}) as Record<string, unknown>;
+  const merged = { ...currentSettings, ...keys };
+  const { error } = await (supabaseAdmin as any)
     .from("games")
     .update({ game_settings: merged })
     .eq("id", gameId);
 
-  if (err2) throw new Error(err2.message);
-  void error; // suppress unused
+  if (error) throw new Error(error.message);
 }
 
 // ── client state projection ───────────────────────────────────────────────────
@@ -117,10 +110,10 @@ export async function startLetterBlitzMatch(
   if (players.length < 2) fail("Letter Blitz requires at least 2 players.");
   if (!players.every((p) => p.profiles)) fail("All players need a profile.");
 
-  const raw = game.game_settings ?? {};
+  const raw = (game.game_settings ?? {}) as Record<string, unknown>;
   const settings: LetterBlitzSettings = {
-    rounds: Number(raw.letterBlitzRounds ?? DEFAULT_LETTER_BLITZ_SETTINGS.rounds),
-    roundTime: Number(raw.letterBlitzRoundTime ?? DEFAULT_LETTER_BLITZ_SETTINGS.roundTime),
+    rounds: Number(raw["letterBlitzRounds"] ?? DEFAULT_LETTER_BLITZ_SETTINGS.rounds),
+    roundTime: Number(raw["letterBlitzRoundTime"] ?? DEFAULT_LETTER_BLITZ_SETTINGS.roundTime),
   };
 
   const initScores: Record<string, number> = {};
@@ -167,20 +160,20 @@ export async function submitLetterBlitzGuess(
   const round = data.currentRound;
   if (!round) return { ok: false, rank: null, error: "No active round." };
 
-  // Validate word contains both letters
-  const w = word.trim().toUpperCase();
   const [l1, l2] = round.letters;
-  if (!w || w.length < 2) return { ok: false, rank: null, error: "Word too short." };
-  if (!w.includes(l1!) || !w.includes(l2!))
-    return { ok: false, rank: null, error: `Word must contain both letters: ${l1} and ${l2}` };
+  const validation = validateWordDuelAttempt(word, l1, l2);
+  if (!validation.valid) {
+    return { ok: false, rank: null, error: validation.reason ?? "Invalid word." };
+  }
+  const cleanWord = validation.normalizedWord!.toUpperCase();
 
   // Check not already guessed by this player
   const alreadyGuessed = round.guesses.find((g) => g.profileId === profileId && g.accepted);
   if (alreadyGuessed) return { ok: false, rank: null, error: "You already submitted a valid word." };
 
-  // Check for duplicate word
-  const duplicate = round.guesses.find((g) => g.word.toUpperCase() === w && g.accepted);
-  if (duplicate) return { ok: false, rank: null, error: "That word was already used!" };
+  // Check for duplicate word in this round
+  const duplicate = round.guesses.find((g) => g.word.toUpperCase() === cleanWord && g.accepted);
+  if (duplicate) return { ok: false, rank: null, error: `"${cleanWord}" was already claimed by another player!` };
 
   // Rank = number of previously accepted guesses + 1
   const acceptedCount = round.guesses.filter((g) => g.accepted).length;
@@ -192,7 +185,7 @@ export async function submitLetterBlitzGuess(
   const newGuess = {
     profileId,
     displayName,
-    word: word.trim(),
+    word: cleanWord,
     accepted: true,
     rank,
     submittedAt: new Date().toISOString(),

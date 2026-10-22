@@ -60,7 +60,13 @@ function LetterBlitzGameHubPage() {
         {/* Game Header */}
         <div className="text-center py-4">
           <div className="mx-auto mb-4 grid size-24 place-items-center rounded-3xl border-3 border-border bg-teal-400 text-ink shadow-panel transform -rotate-3 p-3">
-            <span className="text-5xl select-none">🔡</span>
+            <img
+              src="/stickers/game-letter-blitz.svg"
+              alt="Letter Blitz"
+              width={64}
+              height={64}
+              className="size-16 select-none drop-shadow"
+            />
           </div>
           <h1 className="font-display text-4xl tracking-tight text-foreground">Letter Blitz</h1>
           <p className="mt-1 font-semibold text-sm text-muted-foreground">
@@ -82,7 +88,7 @@ function LetterBlitzGameHubPage() {
               <div>
                 <p className="font-bold text-foreground">1. Two Mystery Letters</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Each round, two random letters are revealed to all players at the same time.
+                  Each round reveals two random alphabets to all players at the same time.
                 </p>
               </div>
             </div>
@@ -92,9 +98,9 @@ function LetterBlitzGameHubPage() {
                 <Timer className="size-4" />
               </div>
               <div>
-                <p className="font-bold text-foreground">2. Race to Find a Word</p>
+                <p className="font-bold text-foreground">2. First &amp; Last Letter Match</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Think fast! Submit any valid English word containing both letters. Words can only be used once per round.
+                  Submit a valid English word starting with one letter and ending with the other (or vice-versa)! E.g. with <strong>T</strong> and <strong>P</strong>: <em>TRIP</em> (T...P) or <em>POST</em> (P...T).
                 </p>
               </div>
             </div>

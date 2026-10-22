@@ -46,6 +46,7 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
       const t = setTimeout(refresh, 500);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [lb?.phase, countdownLeft, refresh]);
 
   // Auto-advance when round timer hits 0
@@ -54,6 +55,7 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
       const t = setTimeout(refresh, 800);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [lb?.phase, timeLeft, refresh]);
 
   // Host auto-advances round_end → next round
@@ -66,6 +68,7 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
       }, 2500);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [lb?.phase, s.me.isHost, token, s.code, advanceRound, runAction, refresh]);
 
   function showFeedback(ok: boolean, msg: string) {
@@ -202,7 +205,7 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
           <p className="font-display font-bold text-lg">
             Round {lb.roundNumber}/{lb.totalRounds}
           </p>
-          <p className="text-xs text-muted-foreground font-semibold">Guess a word with both letters</p>
+          <p className="text-xs text-muted-foreground font-semibold">Start with one letter &amp; end with the other</p>
         </div>
         <div className={`flex items-center gap-1.5 rounded-xl px-3 py-2 font-display font-bold text-xl ${timeIsLow ? "bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 animate-pulse" : "bg-secondary text-foreground"}`}>
           <Clock className="size-4" />
@@ -212,7 +215,7 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
 
       {/* Letter display */}
       <div className="play-panel p-6 text-center space-y-3 shadow-panel">
-        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Your Letters</p>
+        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Start &amp; End Letters</p>
         <div className="flex items-center justify-center gap-4">
           {[l1, l2].map((letter, i) => (
             <div
@@ -223,7 +226,9 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">Your word must contain <strong>{l1}</strong> and <strong>{l2}</strong></p>
+        <p className="text-xs text-muted-foreground">
+          Must start with <strong>{l1}</strong> and end with <strong>{l2}</strong> (or vice-versa)
+        </p>
       </div>
 
       {/* Input */}
@@ -242,7 +247,7 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
               value={input}
               onChange={(e) => setInput(e.target.value.replace(/[^a-zA-Z]/g, ""))}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              placeholder={`Type a word with ${l1} and ${l2}…`}
+              placeholder={`${l1}…${l2} or ${l2}…${l1}`}
               className="flex-1 rounded-xl border-2 border-border bg-background px-3 py-3 text-base font-semibold uppercase focus:border-primary focus:outline-none"
               autoComplete="off"
               autoFocus
