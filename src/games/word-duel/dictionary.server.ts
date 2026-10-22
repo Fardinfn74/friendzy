@@ -4,6 +4,43 @@ import wordsList from "./words.json";
 const WORD_SET: Set<string> = new Set((wordsList as string[]).map((w) => w.trim().toLowerCase()));
 
 /**
+ * Pre-indexes letter pairs that have at least MIN_WORDS_PER_PAIR valid dictionary words.
+ * This guarantees a 100% chance for players to form multiple valid English words.
+ */
+const MIN_WORDS_PER_PAIR = 15;
+const PAIR_WORD_COUNTS: Map<string, number> = new Map();
+
+function computeSolvableLetterPairs(): Array<[string, string]> {
+  for (const w of wordsList as string[]) {
+    const clean = w.trim().toLowerCase();
+    if (clean.length >= 3 && /^[a-z]+$/.test(clean)) {
+      const a = clean[0]!.toUpperCase();
+      const b = clean[clean.length - 1]!.toUpperCase();
+      if (a !== b) {
+        const key = a < b ? `${a}${b}` : `${b}${a}`;
+        PAIR_WORD_COUNTS.set(key, (PAIR_WORD_COUNTS.get(key) || 0) + 1);
+      }
+    }
+  }
+  const result: Array<[string, string]> = [];
+  for (const [key, count] of PAIR_WORD_COUNTS.entries()) {
+    if (count >= MIN_WORDS_PER_PAIR) {
+      result.push([key[0]!, key[1]!]);
+    }
+  }
+  return result;
+}
+
+export const SOLVABLE_LETTER_PAIRS: Array<[string, string]> = computeSolvableLetterPairs();
+
+export function countWordsForLetterPair(letterA: string, letterB: string): number {
+  const l1 = letterA.trim().toUpperCase();
+  const l2 = letterB.trim().toUpperCase();
+  const key = l1 < l2 ? `${l1}${l2}` : `${l2}${l1}`;
+  return PAIR_WORD_COUNTS.get(key) ?? 0;
+}
+
+/**
  * Checks if a word exists in the bundled English dictionary
  */
 export function isEnglishWord(word: string): boolean {

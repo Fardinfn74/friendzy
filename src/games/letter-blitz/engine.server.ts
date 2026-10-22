@@ -1,7 +1,6 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { validateWordDuelAttempt } from "@/games/word-duel/dictionary.server";
+import { validateWordDuelAttempt, SOLVABLE_LETTER_PAIRS } from "@/games/word-duel/dictionary.server";
 import {
-  LETTERS,
   DEFAULT_LETTER_BLITZ_SETTINGS,
   type LetterBlitzServerData,
   type LetterBlitzClientState,
@@ -27,17 +26,19 @@ type AnyPlayer = {
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function pickLetterPair(usedPairs: Array<[string, string]>): [string, string] {
-  const allPairs: Array<[string, string]> = [];
-  for (let i = 0; i < LETTERS.length; i++) {
-    for (let j = i + 1; j < LETTERS.length; j++) {
-      allPairs.push([LETTERS[i]!, LETTERS[j]!]);
-    }
-  }
-  const available = allPairs.filter(
-    (p) => !usedPairs.some((u) => u[0] === p[0] && u[1] === p[1]),
+  // Only select pairs that have at least 15 valid English words in the dictionary.
+  // This guarantees a 100% chance for players to make words, excluding impossible pairs like U&V, P&Q, etc.
+  const available = SOLVABLE_LETTER_PAIRS.filter(
+    (p) =>
+      !usedPairs.some(
+        (u) =>
+          (u[0] === p[0] && u[1] === p[1]) || (u[0] === p[1] && u[1] === p[0]),
+      ),
   );
-  const pool = available.length > 0 ? available : allPairs;
-  return pool[Math.floor(Math.random() * pool.length)]!;
+  const pool = available.length > 0 ? available : SOLVABLE_LETTER_PAIRS;
+  const chosen = pool[Math.floor(Math.random() * pool.length)]!;
+  // Randomize which letter appears first and second for variety
+  return Math.random() > 0.5 ? [chosen[0]!, chosen[1]!] : [chosen[1]!, chosen[0]!];
 }
 
 function fail(msg: string): never {
