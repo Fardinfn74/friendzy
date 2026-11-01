@@ -1,89 +1,72 @@
 # FRIENDZY 🎮
 
-A playful, retro toybox style multiplayer game hub featuring classic board games and party games with friends!
+A playful, retro "toybox" hub of multiplayer party, brain and board games. Players join a room with a short code
+(or a QR code) and play together in real time. Built with TanStack Start (React 19), Supabase and Tailwind v4,
+deployed on Vercel.
 
-## Games Included
+## Games
 
-- ♟️ **Chess**: Full turn-based 2-player chess with legal move highlights, check/checkmate detection, and move history powered by `chess.js`.
-- 🎲 **Ludo**: 2–4 player classic Indian board game with dice rolls, token racing, home path tracking, and safe squares.
-- 🎯 **Carrom**: 2-player carrom board with animated striker, carrom men pockets, queen mechanics, and foul tracking.
-- 🎭 **Imposter**: Party deduction game for 3 to 12 players with secret words, classic & double-imposter modes, and voting.
-- 📝 **Word Duel**: Rapid turn-based vocabulary battle.
-- 🍾 **Spin the Bottle**: Classic party bottle-spin game.
-- 🤫 **Truth or Dare**: Party prompts with custom or AI generation.
-- 🔢 **Number Guess**: Fast deduction number guessing.
+| Game | Players | Notes |
+| --- | --- | --- |
+| 🎭 Imposter | 3–12 | Secret word, clues, votes. Classic and Double Agent modes |
+| 📝 Word Duel | 2 | Race to type a word that starts and ends with the two secret letters |
+| ⚡ Letter Blitz | 2+ | Everyone races to find a word for two letters; 1st/2nd/3rd earn the most points |
+| 🎨 Doodle Rush | 2+ | One player draws, the rest guess. Live drawing, optional time limit |
+| 🔢 Number Guess | 2–6 | Pick a secret number, crack the others' first |
+| 🤫 Truth or Dare | 3–12 | Turn-based prompts with levels and custom prompts |
+| ♟️ Chess | 2 | Legal-move highlighting, clocks, 3D or 2D board |
+| 🎲 Ludo | 2–4 | Full rules, walking tokens, 3D or 2D board |
+| 🎯 Carrom | 2–4 | Physics striker, queen and fouls, 3D or 2D board |
+| 🍾 Bottle Spin | any | **Offline**: no room. Spin it on your phone like a real bottle (names optional) |
 
----
+## Getting started
 
-## Features
+```bash
+npm install
+cp .env.example .env     # then fill in your own values (see below)
+npm run dev
+```
 
-- **Retro Toybox Aesthetic**: Tactile sticker pieces, collectible role cards, sound effects, and light/dark theme persistence (`imposta.theme`).
-- **Real-Time Multiplayer**: Built with Supabase for real-time presence, state synchronization, rooms, and account stats.
-- **Full-Stack TanStack Start**: Server-side rendering, type-safe RPC server functions, and file-based routing.
-- **Deploy Ready**: Pre-configured with Nitro for smooth deployment on Vercel.
+### 1. Database (Supabase)
 
----
+* **New project:** paste `drizzle/complete_database_setup.sql` into the Supabase SQL editor and run it. It contains everything.
+* **Existing project:** run `drizzle/migrations/0006_doodle_canvas_and_lockdown.sql`. It adds the Doodle Rush canvas table
+  **and locks the tables and helper functions down so they can only be used by the server**. Safe to run twice.
 
-## Tech Stack
+### 2. Environment variables
 
-- **Framework**: [TanStack Start](https://tanstack.com/start) with React 19 & Vite
-- **Server Engine**: [Nitro](https://nitro.unjs.io/)
-- **Routing**: [TanStack Router](https://tanstack.com/router)
-- **Data & State**: [TanStack Query](https://tanstack.com/query)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com) + Radix UI Primitives
-- **Database / Realtime**: PostgreSQL with [Supabase](https://supabase.com) & [Drizzle ORM](https://orm.drizzle.team)
+See `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET` are secrets: never put them in the browser build
+(no `VITE_` prefix), never commit `.env`, and rotate them if a copy ever leaves your machine.
 
----
+### 3. Supabase settings worth checking
 
-## Getting Started
+* **Authentication → Providers/Settings → turn OFF "Allow new users to sign up".** All sign-ups go through the app's own
+  `registerAccountFn` (using the service key), so public sign-up only lets strangers create junk accounts.
+* **Realtime** must be enabled (it is by default). Moves and drawings reach other players instantly through Broadcast;
+  if it is ever unavailable the app falls back to polling.
+* **Region:** create the Vercel project in the region closest to your Supabase project (for Bangladesh, Singapore:
+  Vercel `sin1`, Supabase `ap-southeast-1`). Server and database in different continents is the biggest cause of lag.
 
-### Prerequisites
+## Quality checks
 
-- Node.js 20+
-- npm or pnpm or bun
+```bash
+npm run build            # production build
+npx tsc --noEmit         # type check
+npm run lint             # ESLint + Prettier
+bash sim/run-all.sh      # plays full games of every type against an in-memory database
+```
 
-### Setup
+`sim/` runs the real server code against a fake database, so it needs no Supabase and finishes in seconds. Run it before
+every deploy. `MOCK_LATENCY_MS=100 npx tsx --tsconfig sim/tsconfig.json sim/bench.ts` measures database round trips.
 
-1. Install dependencies:
+## How it works (short)
 
-   ```bash
-   npm install
-   ```
-
-2. Configure environment variables:
-   Copy `.env.example` to `.env` and fill in your Supabase keys:
-
-   ```env
-   VITE_SUPABASE_URL="https://your-project.supabase.co"
-   VITE_SUPABASE_PUBLISHABLE_KEY="your-anon-key"
-   SUPABASE_URL="https://your-project.supabase.co"
-   SUPABASE_PUBLISHABLE_KEY="your-anon-key"
-   SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
-   ```
-
-3. Run development server:
-
-   ```bash
-   npm run dev
-   ```
-
-4. Build for production:
-   ```bash
-   npm run build
-   ```
-
----
-
-## Vercel Deployment
-
-1. Import this repository in [Vercel](https://vercel.com).
-2. Framework Preset will automatically detect **TanStack Start** (via `vercel.json` and `nitro()`).
-3. Add the following **Environment Variables** in Vercel Project Settings:
-   - `SUPABASE_URL`
-   - `SUPABASE_PUBLISHABLE_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY`
-   - `VITE_SUPABASE_PROJECT_ID` (optional)
-   - `OPENAI_API_KEY` (optional, for AI word generation)
-4. Click **Deploy**!
+* `src/lib/game-engine.server.ts`: rooms, players, Imposter rules and the glue for every game. Server-only.
+* `src/games/<game>/`: each game has `engine.server.ts` (rules, authoritative), `index.tsx` (screen) and `settings.tsx`.
+  Every game screen is loaded only when that game is opened.
+* `src/lib/game.functions.ts`, `shop.functions.ts`: the only entry points from the browser. Inputs are validated with zod.
+* Game state lives in `games.game_settings` (JSON). **Clients never receive that raw JSON**, only a projection built on the
+  server that leaves out secrets (hidden letters, secret numbers, the word being drawn).
+* Every state-changing action runs one at a time per room (`room-lock.server.ts`) so simultaneous taps cannot overwrite each other.
+* Rate limits (`rate-limit.server.ts`), friendly error messages (database details are logged, never shown), and security headers
+  (`vercel.json`) are on by default.

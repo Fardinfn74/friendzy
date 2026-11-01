@@ -100,7 +100,14 @@ export async function generateThemedWord(theme: string, difficulty: string): Pro
   }
 
   if (openAiApiKey) {
-    return generateThemedWordOpenAi(theme, difficulty, openAiApiKey);
+    try {
+      return await generateThemedWordOpenAi(theme, difficulty, openAiApiKey);
+    } catch (err) {
+      if ((err as Error)?.name === "TimeoutError") {
+        throw new AiWordError("The word generator is taking too long. Try again in a moment.");
+      }
+      throw err;
+    }
   }
 
   throw new AiWordError("AI word generation isn't configured yet.");
@@ -112,7 +119,7 @@ async function generateThemedWordGemini(
   apiKey: string,
 ): Promise<AiWord> {
   const model = process.env["GEMINI_MODEL"] ?? "gemini-2.5-flash";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const prompt =
     "You pick secret words for the party game Imposta where crew players know a word and imposters see nothing (or a decoy in Double Agent); everyone gives one-word clues. " +
@@ -126,11 +133,12 @@ async function generateThemedWordGemini(
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { responseMimeType: "application/json" },
       }),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
@@ -157,6 +165,9 @@ async function generateThemedWordGemini(
     return { word, category };
   } catch (err) {
     if (err instanceof AiWordError) throw err;
+    if ((err as Error)?.name === "TimeoutError") {
+      throw new AiWordError("The word generator is taking too long. Try again in a moment.");
+    }
     throw new AiWordError("The AI gave an unexpected answer. Try another theme.");
   }
 }
@@ -175,6 +186,7 @@ async function generateThemedWordOpenAi(
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
+    signal: AbortSignal.timeout(8000),
     body: JSON.stringify({
       model,
       messages: [
@@ -228,80 +240,57 @@ export async function generateDoubleAgentDecoy(
   secretWord: string,
   category: string,
 ): Promise<string> {
-  const geminiApiKey = process.env["GEMINI_API_KEY"];
+  const normalized = secretWord.trim();
 
-  // 1. If Gemini API key is available, generate dynamically with >50% match requirement
+  // 1. Hand-picked counterpart: instant, no network, always a good match. Used whenever one exists.
+  const matchedKey = Object.keys(DOUBLE_AGENT_PAIRS).find(
+    (k) => k.toLowerCase() === normalized.toLowerCase(),
+  );
+  if (matchedKey && DOUBLE_AGENT_PAIRS[matchedKey]?.length) {
+    const list = DOUBLE_AGENT_PAIRS[matchedKey]!;
+    return list[Math.floor(Math.random() * list.length)]!;
+  }
+  for (const [key, variants] of Object.entries(DOUBLE_AGENT_PAIRS)) {
+    if (variants.some((v) => v.toLowerCase() === normalized.toLowerCase())) return key;
+  }
+
+  // 2. Only for words without a hand-picked pair: ask the AI, but never make the host wait long.
+  const geminiApiKey = process.env["GEMINI_API_KEY"];
   if (geminiApiKey) {
     try {
       const model = process.env["GEMINI_MODEL"] ?? "gemini-2.5-flash";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
       const prompt =
-        `You are a game designer for the multiplayer party game Imposta (Double Agent mode).\n` +
-        `In Double Agent mode, crew members receive a secret word, and the Double Agent imposter receives a closely-related decoy word.\n` +
-        `CRITICAL REQUIREMENT: The secret word and decoy word MUST match above 50% in semantic, conceptual, and contextual similarity (e.g. Coffee & Tea, Pizza & Burger, Lion & Tiger, Airplane & Helicopter, Violin & Cello, Elephant & Mammoth, Doctor & Surgeon, Beach & Lake).\n` +
-        `They must share at least 50% common traits/clues so both sides give plausible clues to each other without knowing who has what, but they must NOT be the exact same word.\n\n` +
-        `Secret word: "${secretWord}"\n` +
-        `Category: "${category}"\n\n` +
-        `Generate a decoy word that matches "${secretWord}" with above 50% similarity.\n` +
-        `Return valid JSON format:\n` +
-        `{\n  "decoy": "string",\n  "similarityPercent": 75,\n  "matchReason": "string"\n}`;
-
+        `Party game word pairs. Secret word: "${secretWord.replace(/["\n]/g, " ")}". Category: "${category.replace(/["\n]/g, " ")}".\n` +
+        `Give ONE different but closely related everyday word (like Coffee/Tea, Lion/Tiger, Violin/Cello) that is NOT the same word.\n` +
+        `Return JSON: {"decoy": "string"}`;
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": geminiApiKey },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: "application/json" },
         }),
+        signal: AbortSignal.timeout(3000),
       });
-
       if (res.ok) {
         const data = (await res.json()) as {
           candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
         };
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) {
-          const parsed = JSON.parse(text) as {
-            decoy?: string;
-            similarityPercent?: number;
-          };
-          const decoy = String(parsed.decoy ?? "")
+          const decoy = String((JSON.parse(text) as { decoy?: string }).decoy ?? "")
             .trim()
+            .replace(/[^\p{L}\p{N} '-]/gu, "")
             .slice(0, 40);
-          const similarity = Number(parsed.similarityPercent ?? 0);
-          if (
-            decoy &&
-            decoy.toLowerCase() !== secretWord.toLowerCase() &&
-            (!similarity || similarity >= 50)
-          ) {
-            return decoy;
-          }
+          if (decoy && decoy.toLowerCase() !== normalized.toLowerCase()) return decoy;
         }
       }
     } catch {
-      // Fall through to curated table
+      // timed out or unreachable: use the fallback below
     }
   }
 
-  // 2. Curated counterpart check (>50% match)
-  const normalized = secretWord.trim();
-  const matchedKey = Object.keys(DOUBLE_AGENT_PAIRS).find(
-    (k) => k.toLowerCase() === normalized.toLowerCase(),
-  );
-
-  if (matchedKey && DOUBLE_AGENT_PAIRS[matchedKey]?.length) {
-    const list = DOUBLE_AGENT_PAIRS[matchedKey]!;
-    return list[Math.floor(Math.random() * list.length)]!;
-  }
-
-  // 3. Reverse match check
-  for (const [key, variants] of Object.entries(DOUBLE_AGENT_PAIRS)) {
-    if (variants.some((v) => v.toLowerCase() === normalized.toLowerCase())) {
-      return key;
-    }
-  }
-
-  // 4. Default fallback
+  // 3. Default fallback
   return `Similar ${category}`;
 }

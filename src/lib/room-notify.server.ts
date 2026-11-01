@@ -10,8 +10,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 function keepAlive(work: Promise<unknown>) {
   try {
     const ctx = (globalThis as Record<symbol, unknown>)[Symbol.for("@vercel/request-context")] as
-      | { get?: () => { waitUntil?: (p: Promise<unknown>) => void } | undefined }
-      | undefined;
+      { get?: () => { waitUntil?: (p: Promise<unknown>) => void } | undefined } | undefined;
     ctx?.get?.()?.waitUntil?.(work);
   } catch {
     /* not on Vercel */
@@ -24,7 +23,9 @@ export function notifyRoom(code: string): void {
     const channel = supabaseAdmin.channel(topic);
     try {
       const payload = { t: Date.now() };
-      const maybeHttp = (channel as unknown as { httpSend?: (e: string, p: unknown) => Promise<unknown> }).httpSend;
+      const maybeHttp = (
+        channel as unknown as { httpSend?: (e: string, p: unknown) => Promise<unknown> }
+      ).httpSend;
       const send =
         typeof maybeHttp === "function"
           ? maybeHttp.call(channel, "tick", payload)

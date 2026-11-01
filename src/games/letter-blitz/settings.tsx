@@ -80,7 +80,9 @@ export function LetterBlitzSettingsView({ s, token }: LetterBlitzSettingsProps) 
       </div>
 
       {!s.me.isHost && (
-        <p className="text-xs text-muted-foreground text-center">Only the host can change settings.</p>
+        <p className="text-xs text-muted-foreground text-center">
+          Only the host can change settings.
+        </p>
       )}
     </div>
   );

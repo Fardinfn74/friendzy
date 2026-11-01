@@ -34,7 +34,7 @@ export function GameLayout({
                 className="mini-brand font-display flex items-center gap-2 text-2xl font-black"
               >
                 <img
-                  src="/stickers/mark-dice.svg"
+                  src="/stickers/mark-dice.webp"
                   alt=""
                   width={28}
                   height={28}

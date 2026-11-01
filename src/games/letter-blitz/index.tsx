@@ -62,9 +62,7 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
   useEffect(() => {
     if (lb?.phase === "round_end" && s.me.isHost) {
       const t = setTimeout(() => {
-        runAction(() =>
-          advanceRound({ data: { sessionToken: token, code: s.code } })
-        , refresh);
+        runAction(() => advanceRound({ data: { sessionToken: token, code: s.code } }), refresh);
       }, 2500);
       return () => clearTimeout(t);
     }
@@ -88,7 +86,14 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
     } else if (res && "rank" in res) {
       const rank = (res as { rank: number | null }).rank;
       const pts = rank === 1 ? 3 : rank === 2 ? 2 : 1;
-      showFeedback(true, rank === 1 ? `🥇 First! +${pts}pts` : rank === 2 ? `🥈 Second! +${pts}pt` : `✅ Accepted! +${pts}pt`);
+      showFeedback(
+        true,
+        rank === 1
+          ? `🥇 First! +${pts}pts`
+          : rank === 2
+            ? `🥈 Second! +${pts}pt`
+            : `✅ Accepted! +${pts}pt`,
+      );
       refresh();
     }
   }, [input, lb?.phase, submitGuess, token, s.code, refresh]);
@@ -117,12 +122,17 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
           )}
         </div>
         <div className="play-panel p-4 space-y-3">
-          <h3 className="font-display font-bold text-sm text-muted-foreground uppercase tracking-wider">Final Scores</h3>
+          <h3 className="font-display font-bold text-sm text-muted-foreground uppercase tracking-wider">
+            Final Scores
+          </h3>
           {sorted.map(([pid, score], i) => {
             const p = s.players.find((pl) => pl.profileId === pid);
             if (!p) return null;
             return (
-              <div key={pid} className={`flex items-center gap-3 rounded-xl p-3 ${i === 0 ? "bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300" : "bg-secondary/50"}`}>
+              <div
+                key={pid}
+                className={`flex items-center gap-3 rounded-xl p-3 ${i === 0 ? "bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300" : "bg-secondary/50"}`}
+              >
                 <span className="font-display font-bold text-lg w-7 text-center">
                   {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`}
                 </span>
@@ -144,36 +154,46 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
       <div className="space-y-5 animate-rise">
         <div className="play-panel p-5 text-center space-y-2">
           <p className="font-display font-bold text-2xl">Round {round?.roundNumber} Done!</p>
-          <p className="text-muted-foreground text-sm">Letters were: <span className="font-bold text-primary text-lg">{round?.letters.join(" · ")}</span></p>
+          <p className="text-muted-foreground text-sm">
+            Letters were:{" "}
+            <span className="font-bold text-primary text-lg">{round?.letters.join(" · ")}</span>
+          </p>
           {s.me.isHost && <p className="text-xs text-muted-foreground">Next round starting…</p>}
         </div>
         {round && round.guesses.length > 0 && (
           <div className="play-panel p-4 space-y-2">
             <p className="font-display font-bold text-sm">This Round</p>
-            {round.guesses.filter((g) => g.accepted).sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99)).map((g) => (
-              <div key={g.profileId + g.word} className="flex items-center gap-2 text-sm">
-                <span className="font-bold w-6 text-center">{g.rank === 1 ? "🥇" : g.rank === 2 ? "🥈" : "🥉"}</span>
-                <span className="font-semibold">{g.displayName}</span>
-                <span className="text-muted-foreground">·</span>
-                <span className="font-mono font-bold text-primary">{g.word}</span>
-              </div>
-            ))}
+            {round.guesses
+              .filter((g) => g.accepted)
+              .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99))
+              .map((g) => (
+                <div key={g.profileId + g.word} className="flex items-center gap-2 text-sm">
+                  <span className="font-bold w-6 text-center">
+                    {g.rank === 1 ? "🥇" : g.rank === 2 ? "🥈" : "🥉"}
+                  </span>
+                  <span className="font-semibold">{g.displayName}</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="font-mono font-bold text-primary">{g.word}</span>
+                </div>
+              ))}
           </div>
         )}
         <div className="play-panel p-4 space-y-2">
           <p className="font-display font-bold text-sm">Leaderboard</p>
-          {Object.entries(lb.scores).sort((a, b) => b[1] - a[1]).map(([pid, score], i) => {
-            const p = s.players.find((pl) => pl.profileId === pid);
-            if (!p) return null;
-            return (
-              <div key={pid} className="flex items-center gap-2 text-sm">
-                <span className="w-5 text-center font-bold">{i + 1}.</span>
-                <PlayerAvatar id={p.avatarId} size={28} />
-                <span className="flex-1 font-semibold">{p.displayName}</span>
-                <span className="font-display font-bold text-primary">{score}pt</span>
-              </div>
-            );
-          })}
+          {Object.entries(lb.scores)
+            .sort((a, b) => b[1] - a[1])
+            .map(([pid, score], i) => {
+              const p = s.players.find((pl) => pl.profileId === pid);
+              if (!p) return null;
+              return (
+                <div key={pid} className="flex items-center gap-2 text-sm">
+                  <span className="w-5 text-center font-bold">{i + 1}.</span>
+                  <PlayerAvatar id={p.avatarId} size={28} />
+                  <span className="flex-1 font-semibold">{p.displayName}</span>
+                  <span className="font-display font-bold text-primary">{score}pt</span>
+                </div>
+              );
+            })}
         </div>
       </div>
     );
@@ -185,7 +205,9 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
       <div className="play-panel p-10 text-center space-y-4">
         <p className="font-display text-2xl font-bold">Get Ready!</p>
         <p className="font-display text-8xl font-bold text-primary">{countdownLeft}</p>
-        <p className="text-muted-foreground font-semibold">Round {lb.roundNumber} of {lb.totalRounds} starting…</p>
+        <p className="text-muted-foreground font-semibold">
+          Round {lb.roundNumber} of {lb.totalRounds} starting…
+        </p>
       </div>
     );
   }
@@ -194,7 +216,9 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
   const round = lb.currentRound;
   const [l1, l2] = round?.letters ?? ["?", "?"];
   const myGuess = round?.guesses.find((g) => g.profileId === s.me.profileId && g.accepted);
-  const acceptedGuesses = (round?.guesses ?? []).filter((g) => g.accepted).sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+  const acceptedGuesses = (round?.guesses ?? [])
+    .filter((g) => g.accepted)
+    .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
   const timeIsLow = timeLeft <= 10;
 
   return (
@@ -205,9 +229,13 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
           <p className="font-display font-bold text-lg">
             Round {lb.roundNumber}/{lb.totalRounds}
           </p>
-          <p className="text-xs text-muted-foreground font-semibold">Start with one letter &amp; end with the other</p>
+          <p className="text-xs text-muted-foreground font-semibold">
+            Start with one letter &amp; end with the other
+          </p>
         </div>
-        <div className={`flex items-center gap-1.5 rounded-xl px-3 py-2 font-display font-bold text-xl ${timeIsLow ? "bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 animate-pulse" : "bg-secondary text-foreground"}`}>
+        <div
+          className={`flex items-center gap-1.5 rounded-xl px-3 py-2 font-display font-bold text-xl ${timeIsLow ? "bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 animate-pulse" : "bg-secondary text-foreground"}`}
+        >
           <Clock className="size-4" />
           {timeLeft}s
         </div>
@@ -215,7 +243,9 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
 
       {/* Letter display */}
       <div className="play-panel p-6 text-center space-y-3 shadow-panel">
-        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Start &amp; End Letters</p>
+        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          Start &amp; End Letters
+        </p>
         <div className="flex items-center justify-center gap-4">
           {[l1, l2].map((letter, i) => (
             <div
@@ -235,7 +265,9 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
       {!myGuess ? (
         <div className="play-panel p-4 space-y-3">
           {feedback && (
-            <div className={`flex items-center gap-2 rounded-xl p-3 text-sm font-bold ${feedback.ok ? "bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400" : "bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400"}`}>
+            <div
+              className={`flex items-center gap-2 rounded-xl p-3 text-sm font-bold ${feedback.ok ? "bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400" : "bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400"}`}
+            >
               {feedback.ok ? <CheckCircle className="size-4" /> : <XCircle className="size-4" />}
               {feedback.msg}
             </div>
@@ -252,7 +284,11 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
               autoComplete="off"
               autoFocus
             />
-            <Button onClick={handleSubmit} className="rounded-xl px-5 min-h-[48px]" disabled={!input.trim()}>
+            <Button
+              onClick={handleSubmit}
+              className="rounded-xl px-5 min-h-[48px]"
+              disabled={!input.trim()}
+            >
               <Send className="size-5" />
             </Button>
           </div>
@@ -261,9 +297,15 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
         <div className="play-panel p-4 flex items-center gap-3 bg-green-50 dark:bg-green-950/30 border-2 border-green-400">
           <Zap className="size-5 text-green-600" />
           <div>
-            <p className="font-bold text-green-700 dark:text-green-400">Submitted: <span className="font-mono text-lg">{myGuess.word}</span></p>
+            <p className="font-bold text-green-700 dark:text-green-400">
+              Submitted: <span className="font-mono text-lg">{myGuess.word}</span>
+            </p>
             <p className="text-xs text-muted-foreground">
-              {myGuess.rank === 1 ? "🥇 1st! +3pts" : myGuess.rank === 2 ? "🥈 2nd! +2pts" : "✅ Accepted +1pt"}
+              {myGuess.rank === 1
+                ? "🥇 1st! +3pts"
+                : myGuess.rank === 2
+                  ? "🥈 2nd! +2pts"
+                  : "✅ Accepted +1pt"}
             </p>
           </div>
         </div>
@@ -272,7 +314,9 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
       {/* Live accepted guesses */}
       {acceptedGuesses.length > 0 && (
         <div className="play-panel p-4 space-y-2">
-          <p className="font-display font-bold text-sm text-muted-foreground uppercase tracking-wider">Accepted So Far</p>
+          <p className="font-display font-bold text-sm text-muted-foreground uppercase tracking-wider">
+            Accepted So Far
+          </p>
           {acceptedGuesses.map((g) => (
             <div key={g.profileId + g.word} className="flex items-center gap-2 text-sm">
               <span className="font-bold w-6 text-center text-base">
@@ -292,17 +336,23 @@ export function LetterBlitzGame({ s, token, refresh, runAction }: LetterBlitzGam
           <Trophy className="size-4 text-amber-500" />
           <p className="font-display font-bold text-sm">Scores</p>
         </div>
-        {Object.entries(lb.scores).sort((a, b) => b[1] - a[1]).map(([pid, score]) => {
-          const p = s.players.find((pl) => pl.profileId === pid);
-          if (!p) return null;
-          return (
-            <div key={pid} className="flex items-center gap-2 text-sm">
-              <PlayerAvatar id={p.avatarId} size={26} />
-              <span className={`flex-1 font-semibold ${pid === s.me.profileId ? "text-primary" : ""}`}>{p.displayName}</span>
-              <span className="font-display font-bold">{score}</span>
-            </div>
-          );
-        })}
+        {Object.entries(lb.scores)
+          .sort((a, b) => b[1] - a[1])
+          .map(([pid, score]) => {
+            const p = s.players.find((pl) => pl.profileId === pid);
+            if (!p) return null;
+            return (
+              <div key={pid} className="flex items-center gap-2 text-sm">
+                <PlayerAvatar id={p.avatarId} size={26} />
+                <span
+                  className={`flex-1 font-semibold ${pid === s.me.profileId ? "text-primary" : ""}`}
+                >
+                  {p.displayName}
+                </span>
+                <span className="font-display font-bold">{score}</span>
+              </div>
+            );
+          })}
       </div>
     </div>
   );

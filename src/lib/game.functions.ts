@@ -6,24 +6,45 @@ import type { GameState } from "./game-types";
 const token = z.string().min(10).max(80);
 const code = z.string().min(4).max(8);
 
+const GENERIC_ERROR = "Something went wrong. Please try again.";
+
+/** Messages written for players pass through; unexpected crashes (TypeError etc.) never leak internals. */
+function publicMessage(error: unknown): string {
+  if (!(error instanceof Error)) return GENERIC_ERROR;
+  if (
+    error instanceof TypeError ||
+    error instanceof ReferenceError ||
+    error instanceof RangeError ||
+    error instanceof SyntaxError
+  ) {
+    console.error("[server]", error);
+    return GENERIC_ERROR;
+  }
+  return error.message || GENERIC_ERROR;
+}
+
 function failResult(error: unknown): { ok: false; error: string } {
-  return { ok: false, error: error instanceof Error ? error.message : "Something went wrong." };
+  return { ok: false, error: publicMessage(error) };
 }
 
 function wrap(error: unknown): never {
-  const message = error instanceof Error ? error.message : "Something went wrong.";
-  throw new Error(message);
+  throw new Error(publicMessage(error));
 }
 
 export const saveProfile = createServerFn({ method: "POST" })
   .validator((data) =>
     z
-      .object({ sessionToken: token, displayName: z.string(), avatarId: z.string().max(24) })
+      .object({
+        sessionToken: token,
+        displayName: z.string().max(40),
+        avatarId: z.string().regex(/^[a-z0-9_-]{1,24}$/),
+      })
       .parse(data),
   )
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
+      (await import("./rate-limit.server")).rateLimit("save-profile", 30, 60_000);
       const profile = await engine.upsertProfile(data);
       return { displayName: profile.display_name, avatarId: profile.avatar_id };
     } catch (error) {
@@ -33,11 +54,29 @@ export const saveProfile = createServerFn({ method: "POST" })
 
 export const createGameFn = createServerFn({ method: "POST" })
   .validator((data) =>
-    z.object({ sessionToken: token, gameType: z.string().optional() }).parse(data),
+    z
+      .object({
+        sessionToken: token,
+        gameType: z
+          .enum([
+            "imposter",
+            "word-duel",
+            "number-guess",
+            "truth-or-dare",
+            "chess",
+            "ludo",
+            "carrom",
+            "letter-blitz",
+            "doodle-rush",
+          ])
+          .optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
+      (await import("./rate-limit.server")).rateLimit("create-game", 20, 60_000);
       return await engine.createGame(data.sessionToken, data.gameType ?? "imposter");
     } catch (error) {
       return failResult(error);
@@ -49,6 +88,7 @@ export const joinGameFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
+      (await import("./rate-limit.server")).rateLimit("join-game", 60, 60_000);
       return await engine.joinGame(data.sessionToken, data.code);
     } catch (error) {
       return failResult(error);
@@ -101,33 +141,19 @@ export const updateSettingsFn = createServerFn({ method: "POST" })
             rounds: z.union([z.literal(3), z.literal(5)]).optional(),
           })
           .optional(),
-        bottleSpinSettings: z
-          .object({
-            promptLevel: z.enum(["All", "Chill", "Funny", "Wild"]).optional(),
-            customPrompts: z
-              .array(
-                z.object({
-                  id: z.string(),
-                  type: z.enum(["truth", "dare"]),
-                  level: z.enum(["Chill", "Funny", "Wild"]),
-                  text: z.string(),
-                }),
-              )
-              .optional(),
-          })
-          .optional(),
         truthOrDareSettings: z
           .object({
             promptLevel: z.enum(["All", "Chill", "Funny", "Wild"]).optional(),
             customPrompts: z
               .array(
                 z.object({
-                  id: z.string(),
+                  id: z.string().max(40),
                   type: z.enum(["truth", "dare"]),
                   level: z.enum(["Chill", "Funny", "Wild"]),
-                  text: z.string(),
+                  text: z.string().trim().max(200),
                 }),
               )
+              .max(40)
               .optional(),
           })
           .optional(),
@@ -160,7 +186,7 @@ export const updateSettingsFn = createServerFn({ method: "POST" })
         doodleRushSettings: z
           .object({
             rounds: z.number().int().min(1).max(10).optional(),
-            drawTime: z.number().int().min(30).max(180).optional(),
+            drawTime: z.union([z.literal(0), z.number().int().min(30).max(180)]).optional(),
           })
           .optional(),
       })
@@ -285,6 +311,7 @@ export const generateThemeWordFn = createServerFn({ method: "POST" })
     const engine = await import("./game-engine.server");
     const ai = await import("./ai-word.server");
     try {
+      (await import("./rate-limit.server")).rateLimit("ai-theme", 6, 60_000);
       const difficulty = await engine.assertHostInLobby(data.sessionToken, data.code);
       const { word, category } = await ai.generateThemedWord(data.theme, difficulty);
       await engine.setAiWord(data.sessionToken, data.code, data.theme, word, category);
@@ -423,58 +450,6 @@ export const rematchNumberGuessFn = createServerFn({ method: "POST" })
     try {
       await engine.rematchNumberGuess(data.sessionToken, data.code);
       return { ok: true as const };
-    } catch (error) {
-      return failResult(error);
-    }
-  });
-
-/* ----------------------------------------------------------- bottle spin functions --- */
-
-export const spinBottleFn = createServerFn({ method: "POST" })
-  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
-  .handler(async ({ data }) => {
-    const engine = await import("./game-engine.server");
-    try {
-      const res = await engine.spinBottle(data.sessionToken, data.code);
-      return res;
-    } catch (error) {
-      return failResult(error);
-    }
-  });
-
-export const chooseBottlePromptFn = createServerFn({ method: "POST" })
-  .validator((data) =>
-    z.object({ sessionToken: token, code, type: z.enum(["truth", "dare"]) }).parse(data),
-  )
-  .handler(async ({ data }) => {
-    const engine = await import("./game-engine.server");
-    try {
-      const res = await engine.chooseBottlePrompt(data.sessionToken, data.code, data.type);
-      return res;
-    } catch (error) {
-      return failResult(error);
-    }
-  });
-
-export const completeBottlePromptFn = createServerFn({ method: "POST" })
-  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
-  .handler(async ({ data }) => {
-    const engine = await import("./game-engine.server");
-    try {
-      await engine.completeBottlePrompt(data.sessionToken, data.code);
-      return { ok: true as const };
-    } catch (error) {
-      return failResult(error);
-    }
-  });
-
-export const skipBottlePromptFn = createServerFn({ method: "POST" })
-  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
-  .handler(async ({ data }) => {
-    const engine = await import("./game-engine.server");
-    try {
-      const res = await engine.skipBottlePrompt(data.sessionToken, data.code);
-      return res;
     } catch (error) {
       return failResult(error);
     }
@@ -663,7 +638,9 @@ export const rematchCarromFn = createServerFn({ method: "POST" })
 /* --------------------------------------------------- letter-blitz functions --- */
 
 export const submitLetterBlitzGuessFn = createServerFn({ method: "POST" })
-  .validator((data) => z.object({ sessionToken: token, code, word: z.string().min(1).max(50) }).parse(data))
+  .validator((data) =>
+    z.object({ sessionToken: token, code, word: z.string().min(1).max(50) }).parse(data),
+  )
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
@@ -687,20 +664,49 @@ export const advanceLetterBlitzRoundFn = createServerFn({ method: "POST" })
 
 /* ---------------------------------------------------- doodle-rush functions --- */
 
+// Size limits are enforced here AND again in the engine, so one oversized request can't fill the database.
 const strokeSchema = z.object({
-  x: z.array(z.number()),
-  y: z.array(z.number()),
-  color: z.string(),
-  size: z.number(),
+  x: z.array(z.number()).max(1500),
+  y: z.array(z.number()).max(1500),
+  color: z.string().max(9),
+  size: z.number().min(1).max(40),
   tool: z.enum(["pen", "eraser"]),
 });
 
-export const submitDoodleStrokeFn = createServerFn({ method: "POST" })
-  .validator((data) => z.object({ sessionToken: token, code, stroke: strokeSchema }).parse(data))
+/** The artist saves their picture (the whole canvas, replacing the previous snapshot). */
+export const pushDoodleCanvasFn = createServerFn({ method: "POST" })
+  .validator((data) =>
+    z.object({ sessionToken: token, code, strokes: z.array(strokeSchema).max(400) }).parse(data),
+  )
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
-      await engine.submitDoodleStroke(data.sessionToken, data.code, data.stroke);
+      const res = await engine.pushDoodleCanvas(data.sessionToken, data.code, data.strokes);
+      return { ok: true as const, seq: res.seq };
+    } catch (error) {
+      return failResult(error);
+    }
+  });
+
+/** Guessers fetch the current picture (on joining, after a refresh, or when a live update was missed). */
+export const getDoodleCanvasFn = createServerFn({ method: "POST" })
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .handler(async ({ data }) => {
+    const engine = await import("./game-engine.server");
+    try {
+      return { ok: true as const, ...(await engine.getDoodleCanvas(data.sessionToken, data.code)) };
+    } catch (error) {
+      return failResult(error);
+    }
+  });
+
+/** The artist (or the host) gives up on a drawing nobody can guess. */
+export const endDoodleRoundFn = createServerFn({ method: "POST" })
+  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
+  .handler(async ({ data }) => {
+    const engine = await import("./game-engine.server");
+    try {
+      await engine.endDoodleRound(data.sessionToken, data.code);
       return { ok: true as const };
     } catch (error) {
       return failResult(error);
@@ -708,23 +714,13 @@ export const submitDoodleStrokeFn = createServerFn({ method: "POST" })
   });
 
 export const submitDoodleGuessFn = createServerFn({ method: "POST" })
-  .validator((data) => z.object({ sessionToken: token, code, guess: z.string().min(1).max(60) }).parse(data))
+  .validator((data) =>
+    z.object({ sessionToken: token, code, guess: z.string().min(1).max(60) }).parse(data),
+  )
   .handler(async ({ data }) => {
     const engine = await import("./game-engine.server");
     try {
       return await engine.submitDoodleGuess(data.sessionToken, data.code, data.guess);
-    } catch (error) {
-      return failResult(error);
-    }
-  });
-
-export const clearDoodleCanvasFn = createServerFn({ method: "POST" })
-  .validator((data) => z.object({ sessionToken: token, code }).parse(data))
-  .handler(async ({ data }) => {
-    const engine = await import("./game-engine.server");
-    try {
-      await engine.clearDoodleCanvas(data.sessionToken, data.code);
-      return { ok: true as const };
     } catch (error) {
       return failResult(error);
     }
@@ -741,4 +737,3 @@ export const advanceDoodleRoundFn = createServerFn({ method: "POST" })
       return failResult(error);
     }
   });
-

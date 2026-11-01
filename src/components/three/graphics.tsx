@@ -83,7 +83,10 @@ export function GraphicsToggle({
 }
 
 /** If the 3D view crashes (e.g. the browser loses its WebGL context) fall back to the 2D board instead of a blank screen. */
-export class Boundary3D extends Component<{ onError: () => void; children: ReactNode }, { failed: boolean }> {
+export class Boundary3D extends Component<
+  { onError: () => void; children: ReactNode },
+  { failed: boolean }
+> {
   override state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };

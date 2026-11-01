@@ -100,7 +100,9 @@ function LetterBlitzGameHubPage() {
               <div>
                 <p className="font-bold text-foreground">2. First &amp; Last Letter Match</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Submit a valid English word starting with one letter and ending with the other (or vice-versa)! E.g. with <strong>T</strong> and <strong>P</strong>: <em>TRIP</em> (T...P) or <em>POST</em> (P...T).
+                  Submit a valid English word starting with one letter and ending with the other (or
+                  vice-versa)! E.g. with <strong>T</strong> and <strong>P</strong>: <em>TRIP</em>{" "}
+                  (T...P) or <em>POST</em> (P...T).
                 </p>
               </div>
             </div>
@@ -112,7 +114,8 @@ function LetterBlitzGameHubPage() {
               <div>
                 <p className="font-bold text-foreground">3. Ranked Scoring</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  1st place earns 3 pts, 2nd gets 2 pts, 3rd and on get 1 pt. Most points after all rounds takes the crown!
+                  1st place earns 3 pts, 2nd gets 2 pts, 3rd and on get 1 pt. Most points after all
+                  rounds takes the crown!
                 </p>
               </div>
             </div>

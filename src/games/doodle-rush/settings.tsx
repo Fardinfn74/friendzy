@@ -9,14 +9,15 @@ interface DoodleRushSettingsProps {
   token: string;
 }
 
-const TIME_OPTIONS = [60, 80, 120] as const;
+// 0 = no time limit: the drawing ends when everybody has guessed it (or the artist gives up).
+const TIME_OPTIONS = [0, 60, 90, 120] as const;
 
 export function DoodleRushSettingsView({ s, token }: DoodleRushSettingsProps) {
   const updateSettings = useServerFn(updateSettingsFn);
   const settings = (s.gameSettings ?? {}) as Record<string, unknown>;
   const [saving, setSaving] = useState(false);
 
-  const currentTime = Number(settings["doodleRushDrawTime"] ?? 80);
+  const currentTime = Number(settings["doodleRushDrawTime"] ?? 0);
 
   async function handleTimeChange(value: number) {
     if (!s.me.isHost) return;
@@ -47,7 +48,8 @@ export function DoodleRushSettingsView({ s, token }: DoodleRushSettingsProps) {
           </span>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-          Every player gets exactly 1 chance to draw their secret word while others guess. Winner is crowned The Great Artist!
+          Every player gets exactly 1 chance to draw their secret word while others guess. Winner is
+          crowned The Great Artist!
         </p>
       </div>
 
@@ -63,14 +65,16 @@ export function DoodleRushSettingsView({ s, token }: DoodleRushSettingsProps) {
               disabled={!s.me.isHost || saving}
               className="flex-1"
             >
-              {t}s
+              {t === 0 ? "No limit" : `${t}s`}
             </Button>
           ))}
         </div>
       </div>
 
       {!s.me.isHost && (
-        <p className="text-xs text-muted-foreground text-center">Only the host can change settings.</p>
+        <p className="text-xs text-muted-foreground text-center">
+          Only the host can change settings.
+        </p>
       )}
     </div>
   );

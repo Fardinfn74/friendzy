@@ -9,7 +9,7 @@ import { usernameEmail, useAccount } from "@/hooks/use-account";
 import { supabase } from "@/integrations/supabase/client";
 import { avatarEmoji } from "@/lib/game-types";
 import { PlayerAvatar } from "@/components/player-avatar";
-import { checkUsernameFn, registerAccountFn, prepareLoginFn } from "@/lib/shop.functions";
+import { checkUsernameFn, registerAccountFn } from "@/lib/shop.functions";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -36,7 +36,6 @@ function AccountPage() {
   const { signedIn, account, avatarId, loading, refresh } = useAccount();
   const check = useServerFn(checkUsernameFn);
   const register = useServerFn(registerAccountFn);
-  const prepareLogin = useServerFn(prepareLoginFn);
   const [mode, setMode] = useState<"signup" | "signin">("signup");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -50,7 +49,7 @@ function AccountPage() {
     try {
       const u = username.trim().toLowerCase();
       if (!/^[a-z0-9_]{3,20}$/.test(u)) throw new Error("Username: 3–20 letters, numbers or _.");
-      if (password.length < 6) throw new Error("Password needs at least 6 characters.");
+      if (password.length < 8) throw new Error("Password needs at least 8 characters.");
       if (mode === "signup") {
         if (name.trim().length < 2) throw new Error("Name needs at least 2 characters.");
         const { available } = await check({ data: { username: u } });
@@ -73,7 +72,6 @@ function AccountPage() {
         if (e) throw new Error(e.message);
         localStorage.setItem("friendzy.bonus_pending", "true");
       } else {
-        await prepareLogin({ data: { username: u } });
         const { error: e } = await supabase.auth.signInWithPassword({
           email: usernameEmail(u),
           password,

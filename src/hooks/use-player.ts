@@ -14,7 +14,10 @@ function randomToken() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
   }
-  return `${Date.now()}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+  // Plain-http pages (no randomUUID) still have a secure random source; Math.random must never make a login key.
+  const bytes = new Uint8Array(32);
+  globalThis.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /** Anonymous identity persisted in the browser so a refresh rejoins the same seat. */

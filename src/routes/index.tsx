@@ -17,12 +17,7 @@ import {
 import { useAccount, usernameEmail } from "@/hooks/use-account";
 import { usePlayer } from "@/hooks/use-player";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  checkUsernameFn,
-  createAccountFn,
-  registerAccountFn,
-  prepareLoginFn,
-} from "@/lib/shop.functions";
+import { checkUsernameFn, registerAccountFn } from "@/lib/shop.functions";
 import { joinGameFn, saveProfile } from "@/lib/game.functions";
 import { pageHead } from "@/lib/page-head";
 import { AVATARS, avatarEmoji } from "@/lib/game-types";
@@ -122,6 +117,7 @@ function FriendzyHubHome() {
   if (loading || !ready) {
     return (
       <main className="game-table min-h-dvh flex items-center justify-center p-4 text-foreground">
+        <h1 className="sr-only">FRIENDZY: multiplayer party and board games</h1>
         <div className="play-panel p-8 text-center space-y-3">
           <p className="text-3xl animate-bounce">🎲</p>
           <h2 className="font-display text-2xl font-bold">Loading FRIENDZY…</h2>
@@ -394,7 +390,6 @@ function FriendzyHubHome() {
 function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
   const check = useServerFn(checkUsernameFn);
   const register = useServerFn(registerAccountFn);
-  const prepareLogin = useServerFn(prepareLoginFn);
   const persist = useServerFn(saveProfile);
   const { player, save } = usePlayer();
 
@@ -419,8 +414,8 @@ function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
       setError("Username: 3–20 letters, numbers or _.");
       return;
     }
-    if (password.length < 6) {
-      setError("Password needs at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password needs at least 8 characters.");
       return;
     }
     setBusy(true);
@@ -502,7 +497,6 @@ function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
     }
     setBusy(true);
     try {
-      await prepareLogin({ data: { username: u } });
       const { data, error: signInErr } = await supabase.auth.signInWithPassword({
         email: usernameEmail(u),
         password,
@@ -525,6 +519,7 @@ function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
 
   return (
     <main className="game-table min-h-dvh flex items-center justify-center p-4 text-foreground">
+      <h1 className="sr-only">FRIENDZY: multiplayer party and board games</h1>
       <div className="play-panel w-full max-w-sm p-6 sm:p-7 space-y-6 animate-rise shadow-panel">
         {/* Brand Header */}
         <div className="text-center space-y-2">
@@ -619,7 +614,7 @@ function WelcomeAuthScreen({ onComplete }: { onComplete: () => void }) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder="At least 8 characters"
                 className="h-12 text-base rounded-xl border-2 border-border"
                 autoComplete="new-password"
                 required

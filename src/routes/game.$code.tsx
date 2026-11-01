@@ -3,7 +3,7 @@ import { LogOut, Copy, Share2, Check } from "lucide-react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { RuleBook, SoundToggle } from "@/components/game-extras";
@@ -24,38 +24,79 @@ import {
   updateSettingsFn,
 } from "@/lib/game.functions";
 import { getGameById } from "@/games/registry";
-import { ImposterGame } from "@/games/imposter";
-import { ImposterSettings } from "@/games/imposter/settings";
-import { WordDuelGame } from "@/games/word-duel";
-import { WordDuelSettingsView } from "@/games/word-duel/settings";
-import { NumberGuessGame } from "@/games/number-guess";
-import { NumberGuessSettingsView } from "@/games/number-guess/settings";
-import { BottleSpinGame } from "@/games/bottle-spin";
-import { BottleSpinSettingsView } from "@/games/bottle-spin/settings";
-import { TruthOrDareGame } from "@/games/truth-or-dare";
-import { TruthOrDareSettingsView } from "@/games/truth-or-dare/settings";
-import { ChessGame } from "@/games/chess";
-import { ChessSettingsView } from "@/games/chess/settings";
-import { LudoGame } from "@/games/ludo";
-import { LudoSettingsView } from "@/games/ludo/settings";
-import { CarromGame } from "@/games/carrom";
-import { CarromSettingsView } from "@/games/carrom/settings";
-import { LetterBlitzGame } from "@/games/letter-blitz";
-import { LetterBlitzSettingsView } from "@/games/letter-blitz/settings";
-import { DoodleRushGame } from "@/games/doodle-rush";
-import { DoodleRushSettingsView } from "@/games/doodle-rush/settings";
 
 /** True when the next state change is caused by a clock (countdown, deadline, animation end), not by a player's action. */
 function isClockDriven(s: GameState): boolean {
   const t = s.gameType ?? "imposter";
-  if (t === "imposter") return s.status === "hint" || s.status === "voting" || s.status === "resolved";
+  if (t === "imposter")
+    return s.status === "hint" || s.status === "voting" || s.status === "resolved";
   if (t === "word-duel") return s.wordDuel?.phase === "countdown" || s.wordDuel?.phase === "word";
   if (t === "number-guess") return s.numberGuess?.phase === "countdown";
-  if (t === "bottle-spin") return s.bottleSpin?.phase === "spinning";
   if (t === "chess") return Boolean(s.chess?.settings?.timedMode) && s.chess?.phase === "playing";
-  if (t === "letter-blitz") return s.letterBlitz?.phase === "countdown" || s.letterBlitz?.phase === "round_active";
-  if (t === "doodle-rush") return s.doodleRush?.phase === "countdown" || s.doodleRush?.phase === "drawing";
+  if (t === "letter-blitz")
+    return s.letterBlitz?.phase === "countdown" || s.letterBlitz?.phase === "round_active";
+  if (t === "doodle-rush")
+    return s.doodleRush?.phase === "countdown" || s.doodleRush?.phase === "drawing";
   return false;
+}
+
+// Each game's code is only downloaded when that game is actually opened.
+const ImposterGame = lazy(() =>
+  import("@/games/imposter").then((m) => ({ default: m.ImposterGame })),
+);
+const WordDuelGame = lazy(() =>
+  import("@/games/word-duel").then((m) => ({ default: m.WordDuelGame })),
+);
+const NumberGuessGame = lazy(() =>
+  import("@/games/number-guess").then((m) => ({ default: m.NumberGuessGame })),
+);
+const TruthOrDareGame = lazy(() =>
+  import("@/games/truth-or-dare").then((m) => ({ default: m.TruthOrDareGame })),
+);
+const ChessGame = lazy(() => import("@/games/chess").then((m) => ({ default: m.ChessGame })));
+const LudoGame = lazy(() => import("@/games/ludo").then((m) => ({ default: m.LudoGame })));
+const CarromGame = lazy(() => import("@/games/carrom").then((m) => ({ default: m.CarromGame })));
+const LetterBlitzGame = lazy(() =>
+  import("@/games/letter-blitz").then((m) => ({ default: m.LetterBlitzGame })),
+);
+const DoodleRushGame = lazy(() =>
+  import("@/games/doodle-rush").then((m) => ({ default: m.DoodleRushGame })),
+);
+const ImposterSettings = lazy(() =>
+  import("@/games/imposter/settings").then((m) => ({ default: m.ImposterSettings })),
+);
+const WordDuelSettingsView = lazy(() =>
+  import("@/games/word-duel/settings").then((m) => ({ default: m.WordDuelSettingsView })),
+);
+const NumberGuessSettingsView = lazy(() =>
+  import("@/games/number-guess/settings").then((m) => ({ default: m.NumberGuessSettingsView })),
+);
+const TruthOrDareSettingsView = lazy(() =>
+  import("@/games/truth-or-dare/settings").then((m) => ({ default: m.TruthOrDareSettingsView })),
+);
+const ChessSettingsView = lazy(() =>
+  import("@/games/chess/settings").then((m) => ({ default: m.ChessSettingsView })),
+);
+const LudoSettingsView = lazy(() =>
+  import("@/games/ludo/settings").then((m) => ({ default: m.LudoSettingsView })),
+);
+const CarromSettingsView = lazy(() =>
+  import("@/games/carrom/settings").then((m) => ({ default: m.CarromSettingsView })),
+);
+const LetterBlitzSettingsView = lazy(() =>
+  import("@/games/letter-blitz/settings").then((m) => ({ default: m.LetterBlitzSettingsView })),
+);
+const DoodleRushSettingsView = lazy(() =>
+  import("@/games/doodle-rush/settings").then((m) => ({ default: m.DoodleRushSettingsView })),
+);
+
+/** Shown for a moment while a game's code loads. */
+function GameLoading() {
+  return (
+    <div className="play-panel grid min-h-40 place-items-center p-8 text-center text-sm font-bold text-muted-foreground">
+      Loading the game…
+    </div>
+  );
 }
 
 export const Route = createFileRoute("/game/$code")({
@@ -274,79 +315,29 @@ function GamePage() {
   return (
     <Shell>
       <TopBar s={s} token={token} />
-      {s.status === "lobby" ? (
-        <Lobby s={s} token={token} refresh={refresh} />
-      ) : s.gameType === "word-duel" ? (
-        <WordDuelGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      ) : s.gameType === "number-guess" ? (
-        <NumberGuessGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      ) : s.gameType === "bottle-spin" ? (
-        <BottleSpinGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      ) : s.gameType === "truth-or-dare" ? (
-        <TruthOrDareGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      ) : s.gameType === "chess" ? (
-        <ChessGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      ) : s.gameType === "ludo" ? (
-        <LudoGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      ) : s.gameType === "carrom" ? (
-        <CarromGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      ) : s.gameType === "letter-blitz" ? (
-        <LetterBlitzGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      ) : s.gameType === "doodle-rush" ? (
-        <DoodleRushGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      ) : (
-        <ImposterGame
-          s={s}
-          token={token}
-          refresh={refresh}
-          runAction={runAction}
-        />
-      )}
+      <Suspense fallback={<GameLoading />}>
+        {s.status === "lobby" ? (
+          <Lobby s={s} token={token} refresh={refresh} />
+        ) : s.gameType === "word-duel" ? (
+          <WordDuelGame s={s} token={token} refresh={refresh} runAction={runAction} />
+        ) : s.gameType === "number-guess" ? (
+          <NumberGuessGame s={s} token={token} refresh={refresh} runAction={runAction} />
+        ) : s.gameType === "truth-or-dare" ? (
+          <TruthOrDareGame s={s} token={token} refresh={refresh} runAction={runAction} />
+        ) : s.gameType === "chess" ? (
+          <ChessGame s={s} token={token} refresh={refresh} runAction={runAction} />
+        ) : s.gameType === "ludo" ? (
+          <LudoGame s={s} token={token} refresh={refresh} runAction={runAction} />
+        ) : s.gameType === "carrom" ? (
+          <CarromGame s={s} token={token} refresh={refresh} runAction={runAction} />
+        ) : s.gameType === "letter-blitz" ? (
+          <LetterBlitzGame s={s} token={token} refresh={refresh} runAction={runAction} />
+        ) : s.gameType === "doodle-rush" ? (
+          <DoodleRushGame s={s} token={token} refresh={refresh} runAction={runAction} />
+        ) : (
+          <ImposterGame s={s} token={token} refresh={refresh} runAction={runAction} />
+        )}
+      </Suspense>
     </Shell>
   );
 }
@@ -389,7 +380,7 @@ function TopBar({ s, token }: { s: GameState; token: string }) {
       >
         <span className="text-xl">
           <img
-            src="/stickers/mark-dice.svg"
+            src="/stickers/mark-dice.webp"
             alt=""
             width={22}
             height={22}
@@ -477,7 +468,7 @@ function Lobby({ s, token, refresh }: { s: GameState; token: string; refresh: ()
             className={`grid size-12 shrink-0 place-items-center rounded-2xl border-2 border-border shadow-sm p-1.5 ${game?.accentBg ?? "bg-muted"}`}
           >
             <img
-              src={game?.stickerUrl ?? "/stickers/mark-dice.svg"}
+              src={game?.stickerUrl ?? "/stickers/mark-dice.webp"}
               alt={game?.name ?? "Game"}
               width={36}
               height={36}
@@ -618,18 +609,6 @@ function Lobby({ s, token, refresh }: { s: GameState; token: string; refresh: ()
             Match Settings
           </h2>
           <NumberGuessSettingsView
-            s={s}
-            token={token}
-            updateSettings={updateSettings}
-            refresh={refresh}
-          />
-        </section>
-      ) : s.gameType === "bottle-spin" ? (
-        <section className="play-panel space-y-4 p-5 shadow-panel">
-          <h2 className="font-display font-semibold text-lg border-b border-border/40 pb-2">
-            Match Settings
-          </h2>
-          <BottleSpinSettingsView
             s={s}
             token={token}
             updateSettings={updateSettings}

@@ -1,44 +1,8 @@
 import wordsList from "./words.json";
+import { containsBannedWord } from "@/lib/profanity.server";
 
 // In-memory set for O(1) instantaneous lookup
 const WORD_SET: Set<string> = new Set((wordsList as string[]).map((w) => w.trim().toLowerCase()));
-
-/**
- * Pre-indexes letter pairs that have at least MIN_WORDS_PER_PAIR valid dictionary words.
- * This guarantees a 100% chance for players to form multiple valid English words.
- */
-const MIN_WORDS_PER_PAIR = 15;
-const PAIR_WORD_COUNTS: Map<string, number> = new Map();
-
-function computeSolvableLetterPairs(): Array<[string, string]> {
-  for (const w of wordsList as string[]) {
-    const clean = w.trim().toLowerCase();
-    if (clean.length >= 3 && /^[a-z]+$/.test(clean)) {
-      const a = clean[0]!.toUpperCase();
-      const b = clean[clean.length - 1]!.toUpperCase();
-      if (a !== b) {
-        const key = a < b ? `${a}${b}` : `${b}${a}`;
-        PAIR_WORD_COUNTS.set(key, (PAIR_WORD_COUNTS.get(key) || 0) + 1);
-      }
-    }
-  }
-  const result: Array<[string, string]> = [];
-  for (const [key, count] of PAIR_WORD_COUNTS.entries()) {
-    if (count >= MIN_WORDS_PER_PAIR) {
-      result.push([key[0]!, key[1]!]);
-    }
-  }
-  return result;
-}
-
-export const SOLVABLE_LETTER_PAIRS: Array<[string, string]> = computeSolvableLetterPairs();
-
-export function countWordsForLetterPair(letterA: string, letterB: string): number {
-  const l1 = letterA.trim().toUpperCase();
-  const l2 = letterB.trim().toUpperCase();
-  const key = l1 < l2 ? `${l1}${l2}` : `${l2}${l1}`;
-  return PAIR_WORD_COUNTS.get(key) ?? 0;
-}
 
 /**
  * Checks if a word exists in the bundled English dictionary
@@ -72,6 +36,10 @@ export function validateWordDuelAttempt(
     return { valid: false, reason: "Letters only (no spaces or numbers)" };
   }
 
+  if (containsBannedWord(word)) {
+    return { valid: false, reason: "Let's keep it clean — try another word" };
+  }
+
   const first = word[0];
   const last = word[word.length - 1];
 
@@ -97,4 +65,45 @@ export function validateWordDuelAttempt(
   }
 
   return { valid: true, normalizedWord: word.toUpperCase() };
+}
+
+/* ------------------------------------------------------------------ playable letter pairs */
+let pairPool: Array<[string, string]> | null = null;
+const startEnd = new Map<string, string[]>();
+
+function buildPairIndex() {
+  if (pairPool) return;
+  for (const raw of wordsList as string[]) {
+    const w = raw.trim().toLowerCase();
+    if (w.length < 4 || !/^[a-z]+$/.test(w)) continue;
+    const a = w[0]!;
+    const b = w[w.length - 1]!;
+    if (a === b) continue;
+    const key = a < b ? a + b : b + a;
+    const list = startEnd.get(key);
+    if (list) list.push(w);
+    else startEnd.set(key, [w]);
+  }
+  pairPool = [];
+  for (const [key, list] of startEnd)
+    if (list.length >= 40) pairPool.push([key[0]!.toUpperCase(), key[1]!.toUpperCase()]);
+}
+
+/** Letter pairs that have at least 40 valid words, so a round can never be impossible. */
+export function playableLetterPairs(): Array<[string, string]> {
+  buildPairIndex();
+  return pairPool!;
+}
+
+/** A few real answers for a pair, shown when a round ends. */
+export function exampleWordsFor(a: string, b: string, count = 3): string[] {
+  buildPairIndex();
+  const x = a.toLowerCase();
+  const y = b.toLowerCase();
+  const list = startEnd.get(x < y ? x + y : y + x) ?? [];
+  const picks: string[] = [];
+  const pool = list.filter((w) => w.length <= 8);
+  for (let i = 0; i < count && pool.length; i++)
+    picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]!.toUpperCase());
+  return picks;
 }

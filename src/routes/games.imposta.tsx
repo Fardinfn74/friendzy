@@ -88,8 +88,8 @@ export function ImpostaGameHubPage() {
               <div>
                 <p className="font-bold text-foreground">1. Secret Word</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Crew see the secret word. Imposters bluff and see nothing (or a decoy matching over 50% in Double
-                  Agent mode).
+                  Crew see the secret word. Imposters bluff and see nothing (or a decoy matching
+                  over 50% in Double Agent mode).
                 </p>
               </div>
             </div>

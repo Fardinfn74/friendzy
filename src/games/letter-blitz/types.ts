@@ -1,13 +1,8 @@
-export type LetterBlitzPhase =
-  | "lobby"
-  | "countdown"
-  | "round_active"
-  | "round_end"
-  | "game_over";
+export type LetterBlitzPhase = "lobby" | "countdown" | "round_active" | "round_end" | "game_over";
 
 export interface LetterBlitzSettings {
-  rounds: number;       // 3 | 5 | 7
-  roundTime: number;    // 30 | 45 | 60 seconds
+  rounds: number; // 3 | 5 | 7
+  roundTime: number; // 30 | 45 | 60 seconds
 }
 
 export interface LetterBlitzGuess {
@@ -15,26 +10,30 @@ export interface LetterBlitzGuess {
   displayName: string;
   word: string;
   accepted: boolean;
-  rank: number | null;  // 1 = first accepted, etc.
+  rank: number | null; // 1 = first accepted, etc.
   submittedAt: string;
 }
 
 export interface LetterBlitzRound {
   roundNumber: number;
-  letters: [string, string];  // the 2 chosen letters
+  letters: [string, string]; // the 2 chosen letters
   guesses: LetterBlitzGuess[];
   endsAt: string | null;
   winnerId: string | null;
+  /** a few real answers, only filled in once the round is over */
+  examples?: string[];
 }
 
 export interface LetterBlitzClientState {
   phase: LetterBlitzPhase;
   settings: LetterBlitzSettings;
   currentRound: LetterBlitzRound | null;
-  scores: Record<string, number>;  // profileId -> total points
+  scores: Record<string, number>; // profileId -> total points
   roundNumber: number;
   totalRounds: number;
   countdownEndsAt: string | null;
+  /** when the next round starts by itself (shown between rounds) */
+  nextAt: string | null;
 }
 
 export interface LetterBlitzServerData {
@@ -46,6 +45,7 @@ export interface LetterBlitzServerData {
   usedLetterPairs: Array<[string, string]>;
   roundEndsAt: string | null;
   countdownEndsAt: string | null;
+  nextAt: string | null;
 }
 
 export const DEFAULT_LETTER_BLITZ_SETTINGS: LetterBlitzSettings = {

@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { withRoomLock } from "./room-lock.server";
 import { notifyRoom } from "./room-notify.server";
+import { rateLimit } from "./rate-limit.server";
 import {
   HINT_SECONDS,
   MAX_PLAYERS,
@@ -62,10 +63,18 @@ type PlayerRow = {
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-export class GameError extends Error {}
+export class GameError extends Error {
+  override name = "GameError";
+}
 
 function fail(message: string): never {
   throw new GameError(message);
+}
+
+/** A database/driver error: log the details on the server, show the player a friendly message. */
+function dbFail(error: { message?: string; code?: string } | null | undefined): never {
+  console.error("[db]", error?.code ?? "", error?.message ?? error);
+  throw new GameError("Something went wrong on our side. Please try again.");
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -94,6 +103,8 @@ const profileCache = new Map<string, { value: ProfileRow; expires: number }>();
 const PROFILE_TTL_MS = 5 * 60_000;
 
 export async function resolveProfile(sessionToken: string) {
+  // Generous per-player ceiling (about 10 requests a second): normal play never gets near it, floods do.
+  rateLimit("api", 600, 60_000, sessionToken.slice(0, 24));
   // Looked up on every poll by every player, so keep it in memory for a few minutes.
   const hit = profileCache.get(sessionToken);
   if (hit && hit.expires > Date.now()) return hit.value;
@@ -101,11 +112,14 @@ export async function resolveProfile(sessionToken: string) {
   const { data, error } = await supabaseAdmin.rpc("rpc_get_profile", {
     p_session_token: sessionToken,
   });
-  if (error) fail(error.message);
+  if (error) dbFail(error);
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) fail("We couldn't find your player profile — pick a name again.");
   if (profileCache.size > 5000) profileCache.clear();
-  profileCache.set(sessionToken, { value: row as ProfileRow, expires: Date.now() + PROFILE_TTL_MS });
+  profileCache.set(sessionToken, {
+    value: row as ProfileRow,
+    expires: Date.now() + PROFILE_TTL_MS,
+  });
   return row as ProfileRow;
 }
 
@@ -114,8 +128,10 @@ export async function upsertProfile(input: {
   displayName: string;
   avatarId: string;
 }) {
-  const displayName = input.displayName.trim().slice(0, 16);
-  if (displayName.length < 2) fail("Your name needs at least 2 characters.");
+  const { checkDisplayName } = await import("./profanity.server");
+  const checked = checkDisplayName(input.displayName);
+  if (!checked.ok) fail(checked.reason);
+  const displayName = checked.name;
   profileCache.delete(input.sessionToken);
   // Use SECURITY DEFINER RPC to bypass RLS — works with publishable key too.
   const { data, error } = await supabaseAdmin.rpc("rpc_upsert_profile", {
@@ -123,21 +139,79 @@ export async function upsertProfile(input: {
     p_display_name: displayName,
     p_avatar_id: input.avatarId,
   });
-  if (error) fail(error.message);
+  if (error) dbFail(error);
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) fail("Profile save failed — please try again.");
   return row as { id: string; display_name: string; avatar_id: string };
 }
 
+// A room code never changes which game it belongs to, so remember the mapping and skip a lookup next time.
+const gameMetaByCode = new Map<string, { id: string; type: string }>();
+const codeKey = (code: string) => code.toUpperCase().trim();
+
 async function loadGameByCode(code: string) {
   const { data, error } = await supabaseAdmin
     .from("games")
     .select("*")
-    .eq("code", code.toUpperCase().trim())
+    .eq("code", codeKey(code))
     .maybeSingle();
-  if (error) fail(error.message);
-  if (!data) fail("No game found with that code.");
+  if (error) dbFail(error);
+  if (!data) {
+    gameMetaByCode.delete(codeKey(code));
+    fail("No game found with that code.");
+  }
+  if (gameMetaByCode.size > 3000) gameMetaByCode.clear();
+  gameMetaByCode.set(codeKey(code), {
+    id: data.id as string,
+    type: ((data as unknown as GameRow).game_type as string) || "imposter",
+  });
   return data as GameRow;
+}
+
+async function loadGameById(id: string, code: string) {
+  const { data, error } = await supabaseAdmin.from("games").select("*").eq("id", id).maybeSingle();
+  if (error) dbFail(error);
+  if (!data) {
+    gameMetaByCode.delete(codeKey(code));
+    fail("No game found with that code.");
+  }
+  return data as GameRow;
+}
+
+/** The game and its players together: one database round trip when the room was seen before, two otherwise. */
+async function loadGameWithPlayers(code: string): Promise<{ game: GameRow; players: PlayerRow[] }> {
+  const meta = gameMetaByCode.get(codeKey(code));
+  if (meta) {
+    const [game, players] = await Promise.all([loadGameById(meta.id, code), loadPlayers(meta.id)]);
+    return { game, players };
+  }
+  const game = await loadGameByCode(code);
+  return { game, players: await loadPlayers(game.id) };
+}
+
+/** Throws unless this profile is currently seated in the room. */
+async function assertSeated(game: GameRow, profileId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("game_players")
+    .select("id")
+    .eq("game_id", game.id)
+    .eq("profile_id", profileId)
+    .eq("left_game", false)
+    .maybeSingle();
+  if (error) dbFail(error);
+  if (!data) fail("You're not in this game.");
+}
+
+/** Only plain values (numbers, text, switches) are public. Nested objects hold game state and secrets. */
+function publicSettings(raw: unknown): Record<string, string | number | boolean | null> {
+  const out: Record<string, string | number | boolean | null> = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (v === null || typeof v === "number" || typeof v === "boolean")
+      out[k] = v as number | boolean | null;
+    else if (typeof v === "string" && v.length <= 80) out[k] = v;
+  }
+  return out;
 }
 
 async function loadPlayers(gameId: string) {
@@ -146,12 +220,12 @@ async function loadPlayers(gameId: string) {
     .select("*, profiles(display_name, avatar_id)")
     .eq("game_id", gameId)
     .order("joined_at", { ascending: true });
-  if (error) fail(error.message);
+  if (error) dbFail(error);
   return (data ?? []) as PlayerRow[];
 }
 
 type HintLite = { profile_id: string; round_number: number; message: string; skipped: boolean };
-type VoteLite = { voter_id: string };
+type VoteLite = { voter_id: string; round_number: number };
 
 async function loadHintRows(gameId: string): Promise<HintLite[]> {
   const { data } = await supabaseAdmin
@@ -162,8 +236,11 @@ async function loadHintRows(gameId: string): Promise<HintLite[]> {
   return (data ?? []) as HintLite[];
 }
 
-async function loadVoteRows(gameId: string, round: number): Promise<VoteLite[]> {
-  const { data } = await supabaseAdmin.from("votes").select("voter_id").eq("game_id", gameId).eq("round_number", round);
+async function loadVoteRows(gameId: string): Promise<VoteLite[]> {
+  const { data } = await supabaseAdmin
+    .from("votes")
+    .select("voter_id, round_number")
+    .eq("game_id", gameId);
   return (data ?? []) as VoteLite[];
 }
 
@@ -172,7 +249,7 @@ async function patchGame(gameId: string, patch: Record<string, unknown>) {
     .from("games")
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq("id", gameId);
-  if (error) fail(error.message);
+  if (error) dbFail(error);
 }
 
 /* ---------------------------------------------------------------- rooms --- */
@@ -219,8 +296,8 @@ export async function createGame(
 
 async function joinGameImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const players = await loadPlayers(game.id);
+  const { game, players: allPlayers } = await loadGameWithPlayers(code);
+  const players = allPlayers;
   const mine = players.find((p) => p.profile_id === profile.id);
 
   if (mine) {
@@ -238,7 +315,7 @@ async function joinGameImpl(sessionToken: string, code: string) {
   const { error } = await supabaseAdmin
     .from("game_players")
     .insert({ game_id: game.id, profile_id: profile.id });
-  if (error) fail(error.message);
+  if (error) dbFail(error);
   return { code: game.code };
 }
 
@@ -257,19 +334,6 @@ async function updateSettingsImpl(
           range?: "1-50" | "1-100" | "1-500" | undefined;
           hints?: boolean | undefined;
           rounds?: 3 | 5 | undefined;
-        }
-      | undefined;
-    bottleSpinSettings?:
-      | {
-          promptLevel?: "All" | "Chill" | "Funny" | "Wild" | undefined;
-          customPrompts?:
-            | Array<{
-                id: string;
-                type: "truth" | "dare";
-                level: "Chill" | "Funny" | "Wild";
-                text: string;
-              }>
-            | undefined;
         }
       | undefined;
     truthOrDareSettings?:
@@ -370,23 +434,6 @@ async function updateSettingsImpl(
       },
     };
   }
-  if (settings.bottleSpinSettings) {
-    const existing = (game.game_settings as Record<string, unknown>) || {};
-    const existingBs = (existing["bottleSpin"] as Record<string, unknown>) || {};
-    patch["game_settings"] = {
-      ...((patch["game_settings"] as Record<string, unknown>) || existing),
-      bottleSpin: {
-        ...existingBs,
-        settings: {
-          ...((existingBs["settings"] as Record<string, unknown>) || {
-            promptLevel: "Chill",
-            customPrompts: [],
-          }),
-          ...settings.bottleSpinSettings,
-        },
-      },
-    };
-  }
   if (settings.truthOrDareSettings) {
     const existing = (game.game_settings as Record<string, unknown>) || {};
     const existingTod = (existing["truthOrDare"] as Record<string, unknown>) || {};
@@ -460,7 +507,8 @@ async function updateSettingsImpl(
     patch["game_settings"] = {
       ...((patch["game_settings"] as Record<string, unknown>) || existing),
       letterBlitzRounds: settings.letterBlitzSettings.rounds ?? existing["letterBlitzRounds"] ?? 5,
-      letterBlitzRoundTime: settings.letterBlitzSettings.roundTime ?? existing["letterBlitzRoundTime"] ?? 45,
+      letterBlitzRoundTime:
+        settings.letterBlitzSettings.roundTime ?? existing["letterBlitzRoundTime"] ?? 45,
     };
   }
   if (settings.doodleRushSettings) {
@@ -468,7 +516,8 @@ async function updateSettingsImpl(
     patch["game_settings"] = {
       ...((patch["game_settings"] as Record<string, unknown>) || existing),
       doodleRushRounds: settings.doodleRushSettings.rounds ?? existing["doodleRushRounds"] ?? 3,
-      doodleRushDrawTime: settings.doodleRushSettings.drawTime ?? existing["doodleRushDrawTime"] ?? 80,
+      doodleRushDrawTime:
+        settings.doodleRushSettings.drawTime ?? existing["doodleRushDrawTime"] ?? 80,
     };
   }
   await patchGame(game.id, patch);
@@ -485,7 +534,7 @@ async function kickPlayerImpl(sessionToken: string, code: string, targetProfileI
     .delete()
     .eq("game_id", game.id)
     .eq("profile_id", targetProfileId);
-  if (error) fail(error.message);
+  if (error) dbFail(error);
 }
 
 async function setReadyImpl(sessionToken: string, code: string, ready: boolean) {
@@ -496,13 +545,13 @@ async function setReadyImpl(sessionToken: string, code: string, ready: boolean) 
     .update({ is_ready: ready, last_seen_at: new Date().toISOString() })
     .eq("game_id", game.id)
     .eq("profile_id", profile.id);
-  if (error) fail(error.message);
+  if (error) dbFail(error);
 }
 
 async function leaveGameImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const players = await loadPlayers(game.id);
+  const { game, players: allPlayers } = await loadGameWithPlayers(code);
+  const players = allPlayers;
   const mine = players.find((p) => p.profile_id === profile.id);
   if (!mine) return;
 
@@ -557,14 +606,6 @@ async function startGameImpl(sessionToken: string, code: string) {
     if (!players.every((p) => p.is_ready)) fail("Everyone has to be ready first.");
     const ngEngine = await import("@/games/number-guess/engine.server");
     await ngEngine.startNumberGuessMatch(game, players);
-    return;
-  }
-
-  if (gameType === "bottle-spin") {
-    if (players.length < 3) fail("Bottle Spin requires at least 3 players.");
-    if (!players.every((p) => p.is_ready)) fail("Everyone has to be ready first.");
-    const bsEngine = await import("@/games/bottle-spin/engine.server");
-    await bsEngine.startBottleSpinMatch(game, players);
     return;
   }
 
@@ -661,10 +702,7 @@ async function startGameImpl(sessionToken: string, code: string) {
       ? crewPlayers[Math.floor(Math.random() * crewPlayers.length)]!
       : players[0]!;
 
-  const rest = shuffle([
-    ...crewPlayers.filter((p) => p.id !== firstPlayer.id),
-    ...imposterPlayers,
-  ]);
+  const rest = shuffle([...crewPlayers.filter((p) => p.id !== firstPlayer.id), ...imposterPlayers]);
   const orderedPlayers = [firstPlayer, ...rest];
 
   await Promise.all(
@@ -872,7 +910,7 @@ async function submitVoteImpl(
         is_replay_vote: false,
       }));
   const { error } = await supabaseAdmin.from("votes").insert(rows);
-  if (error) fail(error.message);
+  if (error) dbFail(error);
 
   const { data: votes } = await supabaseAdmin
     .from("votes")
@@ -990,13 +1028,14 @@ async function settleOtherGameAfterLeave(game: GameRow, players: PlayerRow[], le
       await (await import("@/games/word-duel/engine.server")).handleWordDuelPlayerLeft(game, ids);
       break;
     case "number-guess":
-      await (await import("@/games/number-guess/engine.server")).handleNumberGuessPlayerLeft(game, leaverId, ids);
-      break;
-    case "bottle-spin":
-      await (await import("@/games/bottle-spin/engine.server")).handleBottleSpinPlayerLeft(game, leaverId, ids);
+      await (
+        await import("@/games/number-guess/engine.server")
+      ).handleNumberGuessPlayerLeft(game, leaverId, ids);
       break;
     case "truth-or-dare":
-      await (await import("@/games/truth-or-dare/engine.server")).handleTruthOrDarePlayerLeft(game, leaverId);
+      await (
+        await import("@/games/truth-or-dare/engine.server")
+      ).handleTruthOrDarePlayerLeft(game, leaverId);
       break;
     case "ludo":
       await (await import("@/games/ludo/engine.server")).handleLudoPlayerLeft(game, leaverId);
@@ -1004,9 +1043,17 @@ async function settleOtherGameAfterLeave(game: GameRow, players: PlayerRow[], le
     case "carrom":
       await (await import("@/games/carrom/engine.server")).handleCarromPlayerLeft(game, leaverId);
       break;
+    case "letter-blitz":
+      break; // nothing to repair: the round ends when everybody left has answered or the clock runs out
+    case "doodle-rush":
+      await (
+        await import("@/games/doodle-rush/engine.server")
+      ).handleDoodleRushPlayerLeft(game, leaverId, ids);
+      break;
   }
   // Nobody left to play against: close the room.
-  if (ids.length < 2) await patchGame(game.id, { status: "ended", winner: null, pending_status: null });
+  if (ids.length < 2)
+    await patchGame(game.id, { status: "ended", winner: null, pending_status: null });
 }
 
 async function settleAfterRosterChange(game: GameRow, players: PlayerRow[], leaverId?: string) {
@@ -1134,16 +1181,46 @@ async function playAgainImpl(sessionToken: string, code: string) {
 export async function getState(sessionToken: string, code: string): Promise<GameState> {
   const profile = await resolveProfile(sessionToken); // cached: usually no database round trip
 
-  let game = await loadGameByCode(code);
-  if (await advanceIfExpired(code, game).catch(() => false)) game = await loadGameByCode(code);
-
-  // Independent reads run together instead of one after another. Hints and votes only exist in Imposter.
-  const isImposterGame = ((game.game_type as string) || "imposter") === "imposter";
-  const [players, hintRows, voteRows] = await Promise.all([
-    loadPlayers(game.id),
-    isImposterGame ? loadHintRows(game.id) : Promise.resolve([] as HintLite[]),
-    isImposterGame ? loadVoteRows(game.id, game.round_number) : Promise.resolve([] as VoteLite[]),
-  ]);
+  // Everything the screen needs is fetched together: the cached room id lets the game, the players and
+  // (for Imposter) the hints and votes all travel in a single round trip.
+  const meta = gameMetaByCode.get(codeKey(code));
+  const likelyImposter = !meta || meta.type === "imposter";
+  let game: GameRow;
+  let players: PlayerRow[];
+  let hintRows: HintLite[] = [];
+  let voteRows: VoteLite[] = [];
+  if (meta) {
+    const [g, pl, hi, vo] = await Promise.all([
+      loadGameById(meta.id, code),
+      loadPlayers(meta.id),
+      likelyImposter ? loadHintRows(meta.id) : Promise.resolve([] as HintLite[]),
+      likelyImposter ? loadVoteRows(meta.id) : Promise.resolve([] as VoteLite[]),
+    ]);
+    game = g;
+    players = pl;
+    hintRows = hi;
+    voteRows = vo.filter((v) => v.round_number === g.round_number);
+  } else {
+    game = await loadGameByCode(code);
+    const isImp = ((game.game_type as string) || "imposter") === "imposter";
+    const [pl, hi, vo] = await Promise.all([
+      loadPlayers(game.id),
+      isImp ? loadHintRows(game.id) : Promise.resolve([] as HintLite[]),
+      isImp ? loadVoteRows(game.id) : Promise.resolve([] as VoteLite[]),
+    ]);
+    players = pl;
+    hintRows = hi;
+    voteRows = vo.filter((v) => v.round_number === game.round_number);
+  }
+  if (await advanceIfExpired(code, game).catch(() => false)) {
+    const fresh = await loadGameWithPlayers(code);
+    game = fresh.game;
+    players = fresh.players;
+    if (((game.game_type as string) || "imposter") === "imposter") {
+      hintRows = await loadHintRows(game.id);
+      voteRows = (await loadVoteRows(game.id)).filter((v) => v.round_number === game.round_number);
+    }
+  }
   const me = players.find((p) => p.profile_id === profile.id);
   if (!me) fail("You're not in this game.");
 
@@ -1176,12 +1253,6 @@ export async function getState(sessionToken: string, code: string): Promise<Game
     numberGuessState = await ngEngine.syncNumberGuessState(game, players, profile.id);
   }
 
-  let bottleSpinState = null;
-  if (gameType === "bottle-spin") {
-    const bsEngine = await import("@/games/bottle-spin/engine.server");
-    bottleSpinState = await bsEngine.syncBottleSpinState(game, players, profile.id);
-  }
-
   let truthOrDareState = null;
   if (gameType === "truth-or-dare") {
     const todEngine = await import("@/games/truth-or-dare/engine.server");
@@ -1209,14 +1280,27 @@ export async function getState(sessionToken: string, code: string): Promise<Game
   let letterBlitzState = null;
   if (gameType === "letter-blitz") {
     const lbEngine = await import("@/games/letter-blitz/engine.server");
-    await lbEngine.tickLetterBlitz(game);
+    if (lbEngine.letterBlitzTickDue(game)) {
+      // A clock-driven change is due: apply it once, inside the room lock, however many players are polling.
+      await withRoomLock(code, async () => {
+        await lbEngine.tickLetterBlitz(await loadGameById(game.id, code));
+      });
+      game = await loadGameById(game.id, code);
+      notifyRoom(code);
+    }
     letterBlitzState = lbEngine.buildLetterBlitzClientState(lbEngine.parseLetterBlitzData(game));
   }
 
   let doodleRushState = null;
   if (gameType === "doodle-rush") {
     const drEngine = await import("@/games/doodle-rush/engine.server");
-    await drEngine.tickDoodleRush(game);
+    if (drEngine.doodleRushTickDue(game)) {
+      await withRoomLock(code, async () => {
+        await drEngine.tickDoodleRush(await loadGameById(game.id, code));
+      });
+      game = await loadGameById(game.id, code);
+      notifyRoom(code);
+    }
     doodleRushState = drEngine.buildDoodleRushClientState(
       drEngine.parseDoodleRushData(game),
       profile.id,
@@ -1226,10 +1310,9 @@ export async function getState(sessionToken: string, code: string): Promise<Game
   return {
     code: game.code,
     gameType,
-    gameSettings: (game.game_settings as Record<string, string | number | boolean | null>) || {},
+    gameSettings: publicSettings(game.game_settings),
     wordDuel: wordDuelState,
     numberGuess: numberGuessState,
-    bottleSpin: bottleSpinState,
     truthOrDare: truthOrDareState,
     chess: chessState,
     ludo: ludoState,
@@ -1314,8 +1397,8 @@ export async function getState(sessionToken: string, code: string): Promise<Game
 
 async function sendWordDuelLetterImpl(sessionToken: string, code: string, letter: string) {
   const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const players = present(await loadPlayers(game.id));
+  const { game, players: allPlayers } = await loadGameWithPlayers(code);
+  const players = present(allPlayers);
   const wordDuelEngine = await import("@/games/word-duel/engine.server");
   await wordDuelEngine.sendWordDuelLetter(game, players, profile.id, letter);
 }
@@ -1336,8 +1419,8 @@ async function advanceWordDuelRoundImpl(sessionToken: string, code: string) {
 
 async function rematchWordDuelImpl(sessionToken: string, code: string) {
   await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const players = present(await loadPlayers(game.id));
+  const { game, players: allPlayers } = await loadGameWithPlayers(code);
+  const players = present(allPlayers);
   const wordDuelEngine = await import("@/games/word-duel/engine.server");
   await wordDuelEngine.rematchWordDuel(game, players);
 }
@@ -1346,8 +1429,8 @@ async function rematchWordDuelImpl(sessionToken: string, code: string) {
 
 async function lockNumberGuessSecretImpl(sessionToken: string, code: string, number: number) {
   const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const players = present(await loadPlayers(game.id));
+  const { game, players: allPlayers } = await loadGameWithPlayers(code);
+  const players = present(allPlayers);
   const ngEngine = await import("@/games/number-guess/engine.server");
   return await ngEngine.lockNumberGuessSecret(game, players, profile.id, number);
 }
@@ -1373,45 +1456,10 @@ async function advanceNumberGuessRoundImpl(sessionToken: string, code: string) {
 
 async function rematchNumberGuessImpl(sessionToken: string, code: string) {
   await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const players = present(await loadPlayers(game.id));
+  const { game, players: allPlayers } = await loadGameWithPlayers(code);
+  const players = present(allPlayers);
   const ngEngine = await import("@/games/number-guess/engine.server");
   return await ngEngine.rematchNumberGuess(game, players);
-}
-
-/* ----------------------------------------------------------- bottle spin actions --- */
-
-async function spinBottleImpl(sessionToken: string, code: string) {
-  const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const players = present(await loadPlayers(game.id));
-  const bsEngine = await import("@/games/bottle-spin/engine.server");
-  return await bsEngine.spinBottle(game, players, profile.id);
-}
-
-async function chooseBottlePromptImpl(
-  sessionToken: string,
-  code: string,
-  type: "truth" | "dare",
-) {
-  const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const bsEngine = await import("@/games/bottle-spin/engine.server");
-  return await bsEngine.chooseBottlePromptType(game, profile.id, type);
-}
-
-async function completeBottlePromptImpl(sessionToken: string, code: string) {
-  const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const bsEngine = await import("@/games/bottle-spin/engine.server");
-  return await bsEngine.completeBottlePrompt(game, profile.id);
-}
-
-async function skipBottlePromptImpl(sessionToken: string, code: string) {
-  const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const bsEngine = await import("@/games/bottle-spin/engine.server");
-  return await bsEngine.skipBottlePrompt(game, profile.id);
 }
 
 /* -------------------------------------------------------- truth or dare actions --- */
@@ -1465,8 +1513,8 @@ async function resignChessImpl(sessionToken: string, code: string) {
 
 async function rematchChessImpl(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const players = await loadPlayers(game.id);
+  const { game, players: allPlayers } = await loadGameWithPlayers(code);
+  const players = allPlayers;
   const chessEngine = await import("@/games/chess/engine.server");
   return await chessEngine.requestChessRematch(game, players, profile.id);
 }
@@ -1522,15 +1570,21 @@ async function rematchCarromImpl(sessionToken: string, code: string) {
 
 /* ---------------------------------------------------- letter-blitz actions --- */
 
-async function submitLetterBlitzGuessImpl(
-  sessionToken: string,
-  code: string,
-  word: string,
-) {
+async function submitLetterBlitzGuessImpl(sessionToken: string, code: string, word: string) {
   const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
+  const { game, players } = await loadGameWithPlayers(code);
+  const seated = present(players);
+  if (!seated.some((p) => p.profile_id === profile.id)) fail("You're not in this game.");
+  if (((game.game_type as string) || "imposter") !== "letter-blitz")
+    fail("This isn't a Letter Blitz room.");
   const lbEngine = await import("@/games/letter-blitz/engine.server");
-  return await lbEngine.submitLetterBlitzGuess(game, profile.id, profile.display_name, word);
+  return await lbEngine.submitLetterBlitzGuess(
+    game,
+    profile.id,
+    profile.display_name,
+    word,
+    seated.length,
+  );
 }
 
 async function advanceLetterBlitzRoundImpl(sessionToken: string, code: string) {
@@ -1543,34 +1597,46 @@ async function advanceLetterBlitzRoundImpl(sessionToken: string, code: string) {
 
 /* ----------------------------------------------------- doodle-rush actions --- */
 
-async function submitDoodleStrokeImpl(
-  sessionToken: string,
-  code: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  stroke: any,
-) {
+/** Loads the room and makes sure the caller is a Doodle Rush player in it. */
+async function requireDoodleSeat(sessionToken: string, code: string) {
   const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
-  const drEngine = await import("@/games/doodle-rush/engine.server");
-  await drEngine.submitDoodleStroke(game, profile.id, stroke);
+  const { game, players } = await loadGameWithPlayers(code);
+  const seated = present(players);
+  if (!seated.some((p) => p.profile_id === profile.id)) fail("You're not in this game.");
+  if (((game.game_type as string) || "imposter") !== "doodle-rush")
+    fail("This isn't a Doodle Rush room.");
+  return { profile, game, seated };
 }
 
-async function submitDoodleGuessImpl(
-  sessionToken: string,
-  code: string,
-  guess: string,
-) {
-  const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
+async function pushDoodleCanvasImpl(sessionToken: string, code: string, strokes: unknown) {
+  const { profile, game } = await requireDoodleSeat(sessionToken, code);
   const drEngine = await import("@/games/doodle-rush/engine.server");
-  return await drEngine.submitDoodleGuess(game, profile.id, profile.display_name, guess);
+  return await drEngine.pushDoodleCanvas(game, profile.id, strokes);
 }
 
-async function clearDoodleCanvasImpl(sessionToken: string, code: string) {
-  const profile = await resolveProfile(sessionToken);
-  const game = await loadGameByCode(code);
+async function submitDoodleGuessImpl(sessionToken: string, code: string, guess: string) {
+  const { profile, game, seated } = await requireDoodleSeat(sessionToken, code);
   const drEngine = await import("@/games/doodle-rush/engine.server");
-  await drEngine.clearDoodleCanvas(game, profile.id);
+  return await drEngine.submitDoodleGuess(
+    game,
+    profile.id,
+    profile.display_name,
+    guess,
+    seated.length,
+  );
+}
+
+async function endDoodleRoundImpl(sessionToken: string, code: string) {
+  const { profile, game } = await requireDoodleSeat(sessionToken, code);
+  const drEngine = await import("@/games/doodle-rush/engine.server");
+  await drEngine.endDoodleRound(game, profile.id);
+}
+
+/** Read-only: the current picture, for guessers who joined late or missed a live update. */
+export async function getDoodleCanvas(sessionToken: string, code: string) {
+  const { game } = await requireDoodleSeat(sessionToken, code);
+  const drEngine = await import("@/games/doodle-rush/engine.server");
+  return await drEngine.getDoodleCanvas(game);
 }
 
 async function advanceDoodleRoundImpl(sessionToken: string, code: string) {
@@ -1611,10 +1677,6 @@ export const lockNumberGuessSecret = locked(lockNumberGuessSecretImpl);
 export const submitNumberGuess = locked(submitNumberGuessImpl);
 export const advanceNumberGuessRound = locked(advanceNumberGuessRoundImpl);
 export const rematchNumberGuess = locked(rematchNumberGuessImpl);
-export const spinBottle = locked(spinBottleImpl);
-export const chooseBottlePrompt = locked(chooseBottlePromptImpl);
-export const completeBottlePrompt = locked(completeBottlePromptImpl);
-export const skipBottlePrompt = locked(skipBottlePromptImpl);
 export const chooseTruthOrDarePrompt = locked(chooseTruthOrDarePromptImpl);
 export const completeTruthOrDarePrompt = locked(completeTruthOrDarePromptImpl);
 export const skipTruthOrDarePrompt = locked(skipTruthOrDarePromptImpl);
@@ -1628,9 +1690,9 @@ export const submitCarromShotResult = locked(submitCarromShotResultImpl);
 export const rematchCarrom = locked(rematchCarromImpl);
 export const submitLetterBlitzGuess = locked(submitLetterBlitzGuessImpl);
 export const advanceLetterBlitzRound = locked(advanceLetterBlitzRoundImpl);
-export const submitDoodleStroke = locked(submitDoodleStrokeImpl);
+export const pushDoodleCanvas = locked(pushDoodleCanvasImpl);
+export const endDoodleRound = locked(endDoodleRoundImpl);
 export const submitDoodleGuess = locked(submitDoodleGuessImpl);
-export const clearDoodleCanvas = locked(clearDoodleCanvasImpl);
 export const advanceDoodleRound = locked(advanceDoodleRoundImpl);
 export const joinGame = locked(joinGameImpl);
 export const setReady = locked(setReadyImpl);

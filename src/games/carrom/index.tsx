@@ -523,7 +523,8 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
     e.currentTarget.setPointerCapture?.(e.pointerId);
     aimStart(...canvasPoint(e));
   };
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => aimMove(...canvasPoint(e));
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) =>
+    aimMove(...canvasPoint(e));
 
   return (
     <div className="max-w-xl mx-auto space-y-4">
@@ -585,7 +586,13 @@ export function CarromGame({ s, token, refresh, runAction }: CarromGameProps) {
         )}
 
         {/* The Carrom Canvas (2D board; in 3D mode it stays mounted but hidden so the same physics keeps running) */}
-        <div className={use3D ? "hidden" : "relative aspect-square max-w-[440px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-950 shadow-inner bg-[#ebd5ad] select-none"}>
+        <div
+          className={
+            use3D
+              ? "hidden"
+              : "relative aspect-square max-w-[440px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-950 shadow-inner bg-[#ebd5ad] select-none"
+          }
+        >
           <canvas
             ref={canvasRef}
             width={BOARD_SIZE}

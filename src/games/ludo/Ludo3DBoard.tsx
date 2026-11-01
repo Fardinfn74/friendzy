@@ -29,7 +29,10 @@ const COLORS: Record<LudoColor, { main: string; light: string; dark: string }> =
 const ORDER: LudoColor[] = ["red", "green", "yellow", "blue"];
 /** centre of each yard in cell coordinates */
 const YARD_CENTER: Record<LudoColor, [number, number]> = {
-  red: [2.5, 2.5], green: [2.5, 11.5], yellow: [11.5, 11.5], blue: [11.5, 2.5],
+  red: [2.5, 2.5],
+  green: [2.5, 11.5],
+  yellow: [11.5, 11.5],
+  blue: [11.5, 2.5],
 };
 const cellToWorld = (r: number, c: number): [number, number] => [c - 7, r - 7];
 const yardSpot = (color: LudoColor, id: number): [number, number] => {
@@ -38,14 +41,28 @@ const yardSpot = (color: LudoColor, id: number): [number, number] => {
 };
 /** triangle centroids in the home area (where finished tokens rest) */
 const HOME_REST: Record<LudoColor, [number, number]> = {
-  red: [-0.75, 0], green: [0, -0.75], yellow: [0.75, 0], blue: [0, 0.75],
+  red: [-0.75, 0],
+  green: [0, -0.75],
+  yellow: [0.75, 0],
+  blue: [0, 0.75],
 };
 
 /* ---------------------------------------------------------------- pawn */
 const PAWN_GEO = (() => {
   const body = new THREE.LatheGeometry(
-    [[0, 0], [0.34, 0], [0.36, 0.05], [0.3, 0.12], [0.2, 0.22], [0.14, 0.38], [0.16, 0.46], [0.24, 0.5], [0.22, 0.56], [0.12, 0.6], [0, 0.6]]
-      .map(([r, y]) => new THREE.Vector2(r, y)),
+    [
+      [0, 0],
+      [0.34, 0],
+      [0.36, 0.05],
+      [0.3, 0.12],
+      [0.2, 0.22],
+      [0.14, 0.38],
+      [0.16, 0.46],
+      [0.24, 0.5],
+      [0.22, 0.56],
+      [0.12, 0.6],
+      [0, 0.6],
+    ].map(([r, y]) => new THREE.Vector2(r, y)),
     28,
   );
   const head = new THREE.SphereGeometry(0.2, 22, 16);
@@ -54,14 +71,31 @@ const PAWN_GEO = (() => {
 })();
 const pawnMaterials: Partial<Record<LudoColor, THREE.MeshStandardMaterial>> = {};
 const pawnMaterial = (c: LudoColor) =>
-  (pawnMaterials[c] ??= new THREE.MeshStandardMaterial({ color: COLORS[c].main, roughness: 0.28, metalness: 0.15 }));
+  (pawnMaterials[c] ??= new THREE.MeshStandardMaterial({
+    color: COLORS[c].main,
+    roughness: 0.28,
+    metalness: 0.15,
+  }));
 
 /* ---------------------------------------------------------------- token (walks along the track) */
 function Token({
-  color, id, step, finished, slot, movable, onClick, shadow,
+  color,
+  id,
+  step,
+  finished,
+  slot,
+  movable,
+  onClick,
+  shadow,
 }: {
-  color: LudoColor; id: number; step: number; finished: boolean;
-  slot: [number, number]; movable: boolean; onClick: () => void; shadow: THREE.Texture;
+  color: LudoColor;
+  id: number;
+  step: number;
+  finished: boolean;
+  slot: [number, number];
+  movable: boolean;
+  onClick: () => void;
+  shadow: THREE.Texture;
 }) {
   const group = useRef<THREE.Group>(null);
   const ring = useRef<THREE.Mesh>(null);
@@ -114,7 +148,10 @@ function Token({
     }
     if (seg.current) {
       const { from, to, t0 } = seg.current;
-      const dur = queue.current.length === 0 && Math.hypot(to[0] - from[0], to[1] - from[1]) > 2.5 ? 520 : 170;
+      const dur =
+        queue.current.length === 0 && Math.hypot(to[0] - from[0], to[1] - from[1]) > 2.5
+          ? 520
+          : 170;
       const t = Math.min(1, (performance.now() - t0) / dur);
       g.position.x = from[0] + (to[0] - from[0]) * t;
       g.position.z = from[1] + (to[1] - from[1]) * t;
@@ -174,11 +211,36 @@ function faceTexture(n: number) {
   g.strokeRect(3, 3, 122, 122);
   const spots: Record<number, [number, number][]> = {
     1: [[64, 64]],
-    2: [[36, 36], [92, 92]],
-    3: [[36, 36], [64, 64], [92, 92]],
-    4: [[36, 36], [92, 36], [36, 92], [92, 92]],
-    5: [[36, 36], [92, 36], [64, 64], [36, 92], [92, 92]],
-    6: [[36, 34], [92, 34], [36, 64], [92, 64], [36, 94], [92, 94]],
+    2: [
+      [36, 36],
+      [92, 92],
+    ],
+    3: [
+      [36, 36],
+      [64, 64],
+      [92, 92],
+    ],
+    4: [
+      [36, 36],
+      [92, 36],
+      [36, 92],
+      [92, 92],
+    ],
+    5: [
+      [36, 36],
+      [92, 36],
+      [64, 64],
+      [36, 92],
+      [92, 92],
+    ],
+    6: [
+      [36, 34],
+      [92, 34],
+      [36, 64],
+      [92, 64],
+      [36, 94],
+      [92, 94],
+    ],
   };
   for (const [x, y] of spots[n]!) {
     g.beginPath();
@@ -192,15 +254,34 @@ function faceTexture(n: number) {
 // materials order of a BoxGeometry: +x, -x, +y, -y, +z, -z  (opposite faces add up to 7)
 const FACE_VALUES = [3, 4, 1, 6, 2, 5];
 const TOP_ROTATION: Record<number, [number, number, number]> = {
-  1: [0, 0, 0], 6: [Math.PI, 0, 0], 3: [0, 0, Math.PI / 2], 4: [0, 0, -Math.PI / 2], 2: [-Math.PI / 2, 0, 0], 5: [Math.PI / 2, 0, 0],
+  1: [0, 0, 0],
+  6: [Math.PI, 0, 0],
+  3: [0, 0, Math.PI / 2],
+  4: [0, 0, -Math.PI / 2],
+  2: [-Math.PI / 2, 0, 0],
+  5: [Math.PI / 2, 0, 0],
 };
 
 function Dice({
-  value, rolling, canRoll, onRoll,
-}: { value: number | null; rolling: boolean; canRoll: boolean; onRoll: () => void }) {
+  value,
+  rolling,
+  canRoll,
+  onRoll,
+}: {
+  value: number | null;
+  rolling: boolean;
+  canRoll: boolean;
+  onRoll: () => void;
+}) {
   const mesh = useRef<THREE.Mesh>(null);
   const invalidate = useThree((s) => s.invalidate);
-  const mats = useMemo(() => FACE_VALUES.map((v) => new THREE.MeshStandardMaterial({ map: faceTexture(v), roughness: 0.35 })), []);
+  const mats = useMemo(
+    () =>
+      FACE_VALUES.map(
+        (v) => new THREE.MeshStandardMaterial({ map: faceTexture(v), roughness: 0.35 }),
+      ),
+    [],
+  );
   const target = useMemo(() => {
     const [x, y, z] = TOP_ROTATION[value ?? 1] ?? [0, 0, 0];
     return new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z));
@@ -208,7 +289,8 @@ function Dice({
   const spin = useRef(new THREE.Vector3(5, 7, 4));
 
   useEffect(() => {
-    if (rolling) spin.current.set(4 + Math.random() * 5, 5 + Math.random() * 6, 3 + Math.random() * 5);
+    if (rolling)
+      spin.current.set(4 + Math.random() * 5, 5 + Math.random() * 6, 3 + Math.random() * 5);
     invalidate();
   }, [rolling, value, invalidate]);
 
@@ -251,7 +333,8 @@ function starShape(r = 0.34) {
   for (let i = 0; i < 10; i++) {
     const rad = i % 2 === 0 ? r : r * 0.45;
     const a = (Math.PI / 5) * i - Math.PI / 2;
-    const x = Math.cos(a) * rad, y = Math.sin(a) * rad;
+    const x = Math.cos(a) * rad,
+      y = Math.sin(a) * rad;
     if (i === 0) sh.moveTo(x, y);
     else sh.lineTo(x, y);
   }
@@ -275,7 +358,10 @@ function Board({ currentTurnColor }: { currentTurnColor: LudoColor }) {
     });
     return m;
   }, []);
-  const safeCells = useMemo(() => new Set([...SAFE_SQUARES].map((i) => `${TRACK_COORDS[i]![0]},${TRACK_COORDS[i]![1]}`)), []);
+  const safeCells = useMemo(
+    () => new Set([...SAFE_SQUARES].map((i) => `${TRACK_COORDS[i]![0]},${TRACK_COORDS[i]![1]}`)),
+    [],
+  );
 
   const tiles = [];
   for (let r = 0; r < 15; r++) {
@@ -318,7 +404,12 @@ function Board({ currentTurnColor }: { currentTurnColor: LudoColor }) {
         </mesh>
         {[-1, 1].flatMap((dx) =>
           [-1, 1].map((dz) => (
-            <mesh key={`${dx}${dz}`} rotation-x={-Math.PI / 2} position={[dx, 0.15, dz]} raycast={() => null}>
+            <mesh
+              key={`${dx}${dz}`}
+              rotation-x={-Math.PI / 2}
+              position={[dx, 0.15, dz]}
+              raycast={() => null}
+            >
               <ringGeometry args={[0.46, 0.62, 28]} />
               <meshBasicMaterial color={COLORS[col].main} />
             </mesh>
@@ -336,10 +427,26 @@ function Board({ currentTurnColor }: { currentTurnColor: LudoColor }) {
 
   const triangles = ORDER.map((col) => {
     const pts: Record<LudoColor, [number, number][]> = {
-      red: [[-1.5, -1.5], [-1.5, 1.5], [0, 0]],
-      green: [[-1.5, -1.5], [1.5, -1.5], [0, 0]],
-      yellow: [[1.5, -1.5], [1.5, 1.5], [0, 0]],
-      blue: [[-1.5, 1.5], [1.5, 1.5], [0, 0]],
+      red: [
+        [-1.5, -1.5],
+        [-1.5, 1.5],
+        [0, 0],
+      ],
+      green: [
+        [-1.5, -1.5],
+        [1.5, -1.5],
+        [0, 0],
+      ],
+      yellow: [
+        [1.5, -1.5],
+        [1.5, 1.5],
+        [0, 0],
+      ],
+      blue: [
+        [-1.5, 1.5],
+        [1.5, 1.5],
+        [0, 0],
+      ],
     };
     const sh = new THREE.Shape(pts[col].map(([x, y]) => new THREE.Vector2(x, -y)));
     return (
@@ -369,7 +476,17 @@ function Board({ currentTurnColor }: { currentTurnColor: LudoColor }) {
 }
 
 function Scene(props: Ludo3DBoardProps) {
-  const { players, currentTurnColor, movableTokenIds, myColor, diceValue, rolling, canRoll, onRoll, onTokenClick } = props;
+  const {
+    players,
+    currentTurnColor,
+    movableTokenIds,
+    myColor,
+    diceValue,
+    rolling,
+    canRoll,
+    onRoll,
+    onTokenClick,
+  } = props;
   const shadow = useBlobShadowTexture();
   const invalidate = useThree((s) => s.invalidate);
   useLayoutEffect(() => {

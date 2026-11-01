@@ -85,7 +85,8 @@ export function ImposterSettings({
 
       {s.mode === "double" && (
         <p className="rounded-lg bg-accent/20 p-2 text-xs text-muted-foreground border border-border">
-          🕵️ <b>Double Agent</b>: Imposters receive a decoy word matching above 50% with the crew word, and don't know they are imposters!
+          🕵️ <b>Double Agent</b>: Imposters receive a decoy word matching above 50% with the crew
+          word, and don't know they are imposters!
         </p>
       )}
 

@@ -30,3 +30,35 @@ export function checkHintText(
   }
   return { ok: true, text };
 }
+
+const flatten = (text: string) => text.toLowerCase().replace(/[^a-z]/g, "");
+
+/** True when the text contains a word we never want on a stranger's screen. */
+export function containsBannedWord(text: string): boolean {
+  const flat = flatten(text);
+  return BANNED.some((word) => flat.includes(word));
+}
+
+/** Names shown to other players: plain characters only, no links, nothing offensive. */
+export function checkDisplayName(
+  raw: string,
+  max = 16,
+): { ok: true; name: string } | { ok: false; reason: string } {
+  const name = raw.trim().replace(/\s+/g, " ");
+  if (name.length < 2) return { ok: false, reason: "Your name needs at least 2 characters." };
+  if (name.length > max)
+    return { ok: false, reason: `Keep your name under ${max + 1} characters.` };
+  // eslint-disable-next-line no-control-regex -- control characters are exactly what we want to reject
+  if (/[\u0000-\u001f<>]/.test(name))
+    return { ok: false, reason: "That name has characters we can't use." };
+  if (LINKISH.test(name))
+    return { ok: false, reason: "Links, emails and phone numbers aren't allowed in names." };
+  if (containsBannedWord(name))
+    return { ok: false, reason: "Let's keep names friendly — pick another." };
+  return { ok: true, name };
+}
+
+/** Hides offensive text in a chat-style feed instead of rejecting the whole message. */
+export function maskBanned(text: string): string {
+  return containsBannedWord(text) ? "🙈 (hidden)" : text;
+}

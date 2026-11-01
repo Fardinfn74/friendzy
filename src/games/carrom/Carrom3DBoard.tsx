@@ -24,7 +24,10 @@ const BOARD = 500;
 const K = 0.02; // world units per board unit -> the board is 10 x 10
 const toW = (v: number) => (v - BOARD / 2) * K;
 const POCKETS = [
-  [34, 34], [BOARD - 34, 34], [34, BOARD - 34], [BOARD - 34, BOARD - 34],
+  [34, 34],
+  [BOARD - 34, 34],
+  [34, BOARD - 34],
+  [BOARD - 34, BOARD - 34],
 ] as const;
 const POCKET_R = 26;
 const MAX_COINS = 20;
@@ -50,7 +53,14 @@ function makeBoardTexture() {
     g.lineWidth = 0.6 + Math.random() * 1.4;
     g.beginPath();
     g.moveTo(0, y);
-    g.bezierCurveTo(BOARD * 0.3, y + (Math.random() - 0.5) * 14, BOARD * 0.7, y + (Math.random() - 0.5) * 14, BOARD, y + (Math.random() - 0.5) * 10);
+    g.bezierCurveTo(
+      BOARD * 0.3,
+      y + (Math.random() - 0.5) * 14,
+      BOARD * 0.7,
+      y + (Math.random() - 0.5) * 14,
+      BOARD,
+      y + (Math.random() - 0.5) * 10,
+    );
     g.stroke();
   }
   g.globalAlpha = 1;
@@ -72,7 +82,12 @@ function makeBoardTexture() {
   // corner arrows
   g.strokeStyle = "#8b4513";
   g.lineWidth = 2;
-  for (const [sx, sy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]] as const) {
+  for (const [sx, sy] of [
+    [1, 1],
+    [-1, 1],
+    [1, -1],
+    [-1, -1],
+  ] as const) {
     const ox = sx === 1 ? 0 : BOARD;
     const oy = sy === 1 ? 0 : BOARD;
     g.beginPath();
@@ -107,7 +122,15 @@ const COIN_COLORS = {
 } as const;
 
 /* ---------------------------------------------------------------- one coin (position comes from the physics refs) */
-function CoinSlot({ index, coinsRef, shadow }: { index: number; coinsRef: MutableRefObject<CarromCoin[]>; shadow: THREE.Texture }) {
+function CoinSlot({
+  index,
+  coinsRef,
+  shadow,
+}: {
+  index: number;
+  coinsRef: MutableRefObject<CarromCoin[]>;
+  shadow: THREE.Texture;
+}) {
   const group = useRef<THREE.Group>(null);
   const bodyMat = useRef<THREE.MeshStandardMaterial>(null);
   const ringMat = useRef<THREE.MeshBasicMaterial>(null);
@@ -153,7 +176,13 @@ function CoinSlot({ index, coinsRef, shadow }: { index: number; coinsRef: Mutabl
   );
 }
 
-function Striker({ strikerRef, shadow }: { strikerRef: MutableRefObject<CarromStriker>; shadow: THREE.Texture }) {
+function Striker({
+  strikerRef,
+  shadow,
+}: {
+  strikerRef: MutableRefObject<CarromStriker>;
+  shadow: THREE.Texture;
+}) {
   const group = useRef<THREE.Group>(null);
   const sink = useRef(1);
   useFrame((_, dt) => {
@@ -188,7 +217,15 @@ function Striker({ strikerRef, shadow }: { strikerRef: MutableRefObject<CarromSt
 }
 
 /** Dotted aim guide that follows the pull-back, getting redder with more power. */
-function AimGuide({ strikerRef, aim, visible }: { strikerRef: MutableRefObject<CarromStriker>; aim: { dx: number; dy: number } | null; visible: boolean }) {
+function AimGuide({
+  strikerRef,
+  aim,
+  visible,
+}: {
+  strikerRef: MutableRefObject<CarromStriker>;
+  aim: { dx: number; dy: number } | null;
+  visible: boolean;
+}) {
   const group = useRef<THREE.Group>(null);
   const dots = useRef<(THREE.Mesh | null)[]>([]);
   const COUNT = 22;
@@ -209,14 +246,23 @@ function AimGuide({ strikerRef, aim, visible }: { strikerRef: MutableRefObject<C
       m.position.set(toW(s.x + nx * d), 0.12, toW(s.y + ny * d));
       const inPower = d < len + 20;
       (m.material as THREE.MeshBasicMaterial).color.copy(color);
-      (m.material as THREE.MeshBasicMaterial).opacity = inPower ? 0.95 : Math.max(0.08, 0.5 - (d - len) / 320);
+      (m.material as THREE.MeshBasicMaterial).opacity = inPower
+        ? 0.95
+        : Math.max(0.08, 0.5 - (d - len) / 320);
       m.scale.setScalar(inPower ? 1.15 : 0.8);
     });
   });
   return (
     <group ref={group} visible={false}>
       {Array.from({ length: COUNT }, (_, i) => (
-        <mesh key={i} ref={(m) => { dots.current[i] = m; }} rotation-x={-Math.PI / 2} raycast={() => null}>
+        <mesh
+          key={i}
+          ref={(m) => {
+            dots.current[i] = m;
+          }}
+          rotation-x={-Math.PI / 2}
+          raycast={() => null}
+        >
           <circleGeometry args={[0.085, 12]} />
           <meshBasicMaterial transparent />
         </mesh>
@@ -226,7 +272,18 @@ function AimGuide({ strikerRef, aim, visible }: { strikerRef: MutableRefObject<C
 }
 
 function Scene(props: Carrom3DBoardProps) {
-  const { coinsRef, strikerRef, aimVector, isDraggingAim, isSimulating, isMyTurn, renderKey, onAimStart, onAimMove, onAimEnd } = props;
+  const {
+    coinsRef,
+    strikerRef,
+    aimVector,
+    isDraggingAim,
+    isSimulating,
+    isMyTurn,
+    renderKey,
+    onAimStart,
+    onAimMove,
+    onAimEnd,
+  } = props;
   const shadow = useBlobShadowTexture();
   const board = useMemo(() => makeBoardTexture(), []);
   const invalidate = useThree((s) => s.invalidate);
@@ -234,7 +291,10 @@ function Scene(props: Carrom3DBoardProps) {
     invalidate();
   }, [renderKey, isSimulating, isDraggingAim, aimVector, isMyTurn, invalidate]);
 
-  const toBoard = (e: ThreeEvent<PointerEvent>): [number, number] => [e.point.x / K + BOARD / 2, e.point.z / K + BOARD / 2];
+  const toBoard = (e: ThreeEvent<PointerEvent>): [number, number] => [
+    e.point.x / K + BOARD / 2,
+    e.point.z / K + BOARD / 2,
+  ];
 
   return (
     <>
@@ -252,7 +312,10 @@ function Scene(props: Carrom3DBoardProps) {
       </mesh>
       {/* raised rim */}
       {[
-        [0, 4.78, 10, 0.44], [0, -4.78, 10, 0.44], [4.78, 0, 0.44, 9.12], [-4.78, 0, 0.44, 9.12],
+        [0, 4.78, 10, 0.44],
+        [0, -4.78, 10, 0.44],
+        [4.78, 0, 0.44, 9.12],
+        [-4.78, 0, 0.44, 9.12],
       ].map(([x, z, w, d], i) => (
         <mesh key={i} position={[x as number, 0.1, z as number]}>
           <boxGeometry args={[w as number, 0.32, d as number]} />
@@ -276,7 +339,11 @@ function Scene(props: Carrom3DBoardProps) {
         <CoinSlot key={i} index={i} coinsRef={coinsRef} shadow={shadow} />
       ))}
       <Striker strikerRef={strikerRef} shadow={shadow} />
-      <AimGuide strikerRef={strikerRef} aim={aimVector} visible={isDraggingAim && !isSimulating && isMyTurn} />
+      <AimGuide
+        strikerRef={strikerRef}
+        aim={aimVector}
+        visible={isDraggingAim && !isSimulating && isMyTurn}
+      />
       {/* invisible touch surface: converts finger / mouse positions into board coordinates */}
       <mesh
         rotation-x={-Math.PI / 2}

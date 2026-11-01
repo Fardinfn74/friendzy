@@ -8,6 +8,38 @@ export type Database = {
   };
   public: {
     Tables: {
+      draw_canvas: {
+        Row: {
+          game_id: string;
+          round_number: number;
+          seq: number;
+          strokes: Json;
+          updated_at: string;
+        };
+        Insert: {
+          game_id: string;
+          round_number?: number;
+          seq?: number;
+          strokes?: Json;
+          updated_at?: string;
+        };
+        Update: {
+          game_id?: string;
+          round_number?: number;
+          seq?: number;
+          strokes?: Json;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "draw_canvas_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: true;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       game_players: {
         Row: {
           card_seen: boolean;
@@ -80,6 +112,8 @@ export type Database = {
           decoy_word: string | null;
           difficulty: string;
           game_mode: string;
+          game_type: string;
+          game_settings: Json;
           host_id: string;
           id: string;
           imposter_count: number;
@@ -109,6 +143,8 @@ export type Database = {
           decoy_word?: string | null;
           difficulty?: string;
           game_mode?: string;
+          game_type?: string;
+          game_settings?: Json;
           host_id: string;
           id?: string;
           imposter_count?: number;
@@ -138,6 +174,8 @@ export type Database = {
           decoy_word?: string | null;
           difficulty?: string;
           game_mode?: string;
+          game_type?: string;
+          game_settings?: Json;
           host_id?: string;
           id?: string;
           imposter_count?: number;

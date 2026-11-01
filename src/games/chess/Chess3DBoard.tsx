@@ -27,22 +27,53 @@ const pos = (sq: string): [number, number] => [FILES.indexOf(sq[0]!) - 3.5, 4.5 
 
 /* ------------------------------------------------------------------ piece models (built in code) */
 const BASE: [number, number][] = [
-  [0, 0], [0.36, 0], [0.38, 0.03], [0.38, 0.07], [0.32, 0.11], [0.28, 0.14],
+  [0, 0],
+  [0.36, 0],
+  [0.38, 0.03],
+  [0.38, 0.07],
+  [0.32, 0.11],
+  [0.28, 0.14],
 ];
 const lathe = (pts: [number, number][]) =>
-  new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 36);
+  new THREE.LatheGeometry(
+    pts.map(([r, y]) => new THREE.Vector2(r, y)),
+    36,
+  );
 
-type RawPart = { geo: THREE.BufferGeometry; position?: [number, number, number]; rotation?: [number, number, number] };
-type Part = { geo: THREE.BufferGeometry; position: [number, number, number]; rotation: [number, number, number] };
+type RawPart = {
+  geo: THREE.BufferGeometry;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+};
+type Part = {
+  geo: THREE.BufferGeometry;
+  position: [number, number, number];
+  rotation: [number, number, number];
+};
 
 function knightHead() {
   const pts: [number, number][] = [
-    [-0.2, 0.14], [0.2, 0.14], [0.17, 0.3], [0.27, 0.5], [0.42, 0.58], [0.42, 0.68],
-    [0.26, 0.82], [0.2, 1.0], [0.1, 0.88], [-0.02, 1.0], [-0.12, 0.8], [-0.26, 0.5], [-0.24, 0.3],
+    [-0.2, 0.14],
+    [0.2, 0.14],
+    [0.17, 0.3],
+    [0.27, 0.5],
+    [0.42, 0.58],
+    [0.42, 0.68],
+    [0.26, 0.82],
+    [0.2, 1.0],
+    [0.1, 0.88],
+    [-0.02, 1.0],
+    [-0.12, 0.8],
+    [-0.26, 0.5],
+    [-0.24, 0.3],
   ];
   const shape = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)));
   const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: 0.22, bevelEnabled: true, bevelSize: 0.035, bevelThickness: 0.035, bevelSegments: 3,
+    depth: 0.22,
+    bevelEnabled: true,
+    bevelSize: 0.035,
+    bevelThickness: 0.035,
+    bevelSegments: 3,
   });
   geo.translate(0, 0, -0.11);
   return geo;
@@ -56,7 +87,18 @@ function partsFor(type: PieceType): Part[] {
   switch (type) {
     case "p":
       parts = [
-        { geo: lathe([...BASE, [0.2, 0.2], [0.14, 0.32], [0.13, 0.42], [0.2, 0.46], [0.2, 0.5], [0.13, 0.53], [0, 0.53]]) },
+        {
+          geo: lathe([
+            ...BASE,
+            [0.2, 0.2],
+            [0.14, 0.32],
+            [0.13, 0.42],
+            [0.2, 0.46],
+            [0.2, 0.5],
+            [0.13, 0.53],
+            [0, 0.53],
+          ]),
+        },
         { geo: new THREE.SphereGeometry(0.18, 24, 18), position: [0, 0.66, 0] },
       ];
       break;
@@ -64,8 +106,10 @@ function partsFor(type: PieceType): Part[] {
       const m = new THREE.BoxGeometry(0.15, 0.13, 0.15);
       parts = [
         { geo: lathe([...BASE, [0.26, 0.2], [0.22, 0.5], [0.3, 0.57], [0.3, 0.8], [0, 0.8]]) },
-        { geo: m, position: [0.2, 0.86, 0] }, { geo: m, position: [-0.2, 0.86, 0] },
-        { geo: m, position: [0, 0.86, 0.2] }, { geo: m, position: [0, 0.86, -0.2] },
+        { geo: m, position: [0.2, 0.86, 0] },
+        { geo: m, position: [-0.2, 0.86, 0] },
+        { geo: m, position: [0, 0.86, 0.2] },
+        { geo: m, position: [0, 0.86, -0.2] },
       ];
       break;
     }
@@ -81,14 +125,40 @@ function partsFor(type: PieceType): Part[] {
     }
     case "q":
       parts = [
-        { geo: lathe([...BASE, [0.26, 0.2], [0.15, 0.5], [0.13, 0.64], [0.25, 0.82], [0.2, 0.86], [0.12, 0.88], [0, 0.88]]) },
-        { geo: new THREE.TorusGeometry(0.2, 0.04, 10, 28), position: [0, 0.86, 0], rotation: [Math.PI / 2, 0, 0] },
+        {
+          geo: lathe([
+            ...BASE,
+            [0.26, 0.2],
+            [0.15, 0.5],
+            [0.13, 0.64],
+            [0.25, 0.82],
+            [0.2, 0.86],
+            [0.12, 0.88],
+            [0, 0.88],
+          ]),
+        },
+        {
+          geo: new THREE.TorusGeometry(0.2, 0.04, 10, 28),
+          position: [0, 0.86, 0],
+          rotation: [Math.PI / 2, 0, 0],
+        },
         { geo: new THREE.SphereGeometry(0.1, 20, 14), position: [0, 1.0, 0] },
       ];
       break;
     case "k":
       parts = [
-        { geo: lathe([...BASE, [0.26, 0.2], [0.16, 0.5], [0.14, 0.7], [0.26, 0.86], [0.2, 0.9], [0.12, 0.92], [0, 0.92]]) },
+        {
+          geo: lathe([
+            ...BASE,
+            [0.26, 0.2],
+            [0.16, 0.5],
+            [0.14, 0.7],
+            [0.26, 0.86],
+            [0.2, 0.9],
+            [0.12, 0.92],
+            [0, 0.92],
+          ]),
+        },
         { geo: new THREE.BoxGeometry(0.09, 0.32, 0.09), position: [0, 1.1, 0] },
         { geo: new THREE.BoxGeometry(0.26, 0.09, 0.09), position: [0, 1.15, 0] },
       ];
@@ -100,7 +170,11 @@ function partsFor(type: PieceType): Part[] {
         { geo: knightHead(), position: [0, 0.18, 0] },
       ];
   }
-  const full: Part[] = parts.map((p) => ({ geo: p.geo, position: p.position ?? [0, 0, 0], rotation: p.rotation ?? [0, 0, 0] }));
+  const full: Part[] = parts.map((p) => ({
+    geo: p.geo,
+    position: p.position ?? [0, 0, 0],
+    rotation: p.rotation ?? [0, 0, 0],
+  }));
   partsCache[type] = full;
   return full;
 }
@@ -112,8 +186,18 @@ const MATERIALS = {
 
 /* ------------------------------------------------------------------ a single piece (hops when it just moved) */
 function Piece({
-  type, color, square, animFrom, shadow,
-}: { type: PieceType; color: Color; square: string; animFrom: string | null; shadow: THREE.Texture }) {
+  type,
+  color,
+  square,
+  animFrom,
+  shadow,
+}: {
+  type: PieceType;
+  color: Color;
+  square: string;
+  animFrom: string | null;
+  shadow: THREE.Texture;
+}) {
   const group = useRef<THREE.Group>(null);
   const invalidate = useThree((s) => s.invalidate);
   const [tx, tz] = pos(square);
@@ -157,7 +241,13 @@ function Piece({
       </mesh>
       <group rotation-y={type === "n" ? facing : 0}>
         {partsFor(type).map((p, i) => (
-          <mesh key={i} geometry={p.geo} material={MATERIALS[color]} position={p.position} rotation={p.rotation} />
+          <mesh
+            key={i}
+            geometry={p.geo}
+            material={MATERIALS[color]}
+            position={p.position}
+            rotation={p.rotation}
+          />
         ))}
       </group>
     </group>
@@ -169,7 +259,13 @@ const LIGHT = "#f0d9ab";
 const DARK = "#a9733f";
 
 function Squares({
-  selectedSquare, legalDestinations, occupied, lastMove, checkSquare, interactive, onSquareClick,
+  selectedSquare,
+  legalDestinations,
+  occupied,
+  lastMove,
+  checkSquare,
+  interactive,
+  onSquareClick,
 }: {
   selectedSquare: string | null;
   legalDestinations: Set<string>;
@@ -246,7 +342,10 @@ function Frame() {
         <meshStandardMaterial color={wood} roughness={0.55} />
       </mesh>
       {[
-        [0, 4.3, 9.3, 0.5], [0, -4.3, 9.3, 0.5], [4.3, 0, 0.5, 8.1], [-4.3, 0, 0.5, 8.1],
+        [0, 4.3, 9.3, 0.5],
+        [0, -4.3, 9.3, 0.5],
+        [4.3, 0, 0.5, 8.1],
+        [-4.3, 0, 0.5, 8.1],
       ].map(([x, z, w, d], i) => (
         <mesh key={i} position={[x as number, 0.07, z as number]}>
           <boxGeometry args={[w as number, 0.2, d as number]} />
@@ -268,11 +367,21 @@ function Labels({ flip }: { flip: boolean }) {
     const file = FILES[flip ? 7 - i : i]!;
     const rank = String(flip ? 8 - i : i + 1);
     items.push(
-      <mesh key={`f${i}`} rotation-x={-Math.PI / 2} position={[i - 3.5, 0.18, 4.28]} raycast={() => null}>
+      <mesh
+        key={`f${i}`}
+        rotation-x={-Math.PI / 2}
+        position={[i - 3.5, 0.18, 4.28]}
+        raycast={() => null}
+      >
         <planeGeometry args={[0.36, 0.36]} />
         <meshBasicMaterial map={textures[file] ?? null} transparent />
       </mesh>,
-      <mesh key={`r${i}`} rotation-x={-Math.PI / 2} position={[-4.28, 0.18, 3.5 - i]} raycast={() => null}>
+      <mesh
+        key={`r${i}`}
+        rotation-x={-Math.PI / 2}
+        position={[-4.28, 0.18, 3.5 - i]}
+        raycast={() => null}
+      >
         <planeGeometry args={[0.36, 0.36]} />
         <meshBasicMaterial map={textures[rank] ?? null} transparent />
       </mesh>,
@@ -282,7 +391,17 @@ function Labels({ flip }: { flip: boolean }) {
 }
 
 function Scene(props: Chess3DBoardProps) {
-  const { fen, myColor, selectedSquare, legalDestinations, lastMove, inCheckColor, interactive, moveCount, onSquareClick } = props;
+  const {
+    fen,
+    myColor,
+    selectedSquare,
+    legalDestinations,
+    lastMove,
+    inCheckColor,
+    interactive,
+    moveCount,
+    onSquareClick,
+  } = props;
   const shadow = useBlobShadowTexture();
   const invalidate = useThree((s) => s.invalidate);
   const flip = myColor === "b";
@@ -297,7 +416,9 @@ function Scene(props: Chess3DBoardProps) {
     return board.flat().filter(Boolean) as { square: string; type: PieceType; color: Color }[];
   }, [fen]);
   const occupied = useMemo(() => new Set(pieces.map((p) => p.square)), [pieces]);
-  const kingSquare = inCheckColor ? pieces.find((p) => p.type === "k" && p.color === inCheckColor)?.square ?? null : null;
+  const kingSquare = inCheckColor
+    ? (pieces.find((p) => p.type === "k" && p.color === inCheckColor)?.square ?? null)
+    : null;
 
   // keep the picture fresh when anything the board shows changes (the canvas only redraws on demand to save battery)
   useLayoutEffect(() => {

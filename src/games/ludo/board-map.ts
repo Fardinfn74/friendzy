@@ -134,7 +134,6 @@ export const YARD_COORDS: Record<LudoColor, [number, number][]> = {
   ],
 };
 
-
 export const COLOR_START_OFFSETS: Record<LudoColor, number> = {
   red: 0,
   green: 13,

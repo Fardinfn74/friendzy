@@ -306,77 +306,77 @@ export function ChessGame({ s, token, refresh, runAction }: ChessGameProps) {
           </Boundary3D>
         ) : (
           <>
-        {/* The 8x8 Wooden Chess Board */}
-        <div className="relative aspect-square max-w-[460px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-900/60 shadow-inner bg-[#e6c280]">
-          <div className="grid grid-cols-8 grid-rows-8 w-full h-full">
-            {ranks.map((rank) =>
-              files.map((file) => {
-                const square = `${file}${rank}` as Square;
-                const fileIdx = file.charCodeAt(0) - 97;
-                const isLight = (fileIdx + rank) % 2 !== 0;
-                const piece = chessInstance.get(square);
-                const isSelected = selectedSquare === square;
-                const isLegalDest = legalDestinations.has(square);
-                const isLastMoveSquare =
-                  lastMove && (lastMove.from === square || lastMove.to === square);
-                const isInCheckSquare =
-                  chessState.inCheck && piece?.type === "k" && piece.color === chessState.turn;
+            {/* The 8x8 Wooden Chess Board */}
+            <div className="relative aspect-square max-w-[460px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-900/60 shadow-inner bg-[#e6c280]">
+              <div className="grid grid-cols-8 grid-rows-8 w-full h-full">
+                {ranks.map((rank) =>
+                  files.map((file) => {
+                    const square = `${file}${rank}` as Square;
+                    const fileIdx = file.charCodeAt(0) - 97;
+                    const isLight = (fileIdx + rank) % 2 !== 0;
+                    const piece = chessInstance.get(square);
+                    const isSelected = selectedSquare === square;
+                    const isLegalDest = legalDestinations.has(square);
+                    const isLastMoveSquare =
+                      lastMove && (lastMove.from === square || lastMove.to === square);
+                    const isInCheckSquare =
+                      chessState.inCheck && piece?.type === "k" && piece.color === chessState.turn;
 
-                const pieceKey = piece ? `${piece.color}${piece.type}` : null;
-                const pieceInfo = pieceKey ? PIECE_SYMBOLS[pieceKey] : null;
+                    const pieceKey = piece ? `${piece.color}${piece.type}` : null;
+                    const pieceInfo = pieceKey ? PIECE_SYMBOLS[pieceKey] : null;
 
-                return (
-                  <button
-                    key={square}
-                    type="button"
-                    onClick={() => handleSquareClick(square)}
-                    className={`relative flex items-center justify-center select-none transition-transform active:scale-95 ${
-                      isLight ? "bg-[#f4dfb8] text-amber-950" : "bg-[#b88648] text-amber-950"
-                    } ${isLastMoveSquare ? "bg-amber-300/80 dark:bg-amber-600/60" : ""} ${
-                      isSelected ? "ring-4 ring-inset ring-amber-500 bg-amber-200/90" : ""
-                    } ${isInCheckSquare ? "bg-red-500/80 ring-4 ring-red-500 animate-pulse" : ""}`}
-                  >
-                    {/* Retro coordinate labels on edges */}
-                    {file === (myColor === "b" ? "h" : "a") && (
-                      <span className="absolute top-0.5 left-1 text-[9px] font-bold opacity-60">
-                        {rank}
-                      </span>
-                    )}
-                    {rank === (myColor === "b" ? 8 : 1) && (
-                      <span className="absolute bottom-0.5 right-1 text-[9px] font-bold opacity-60">
-                        {file}
-                      </span>
-                    )}
-
-                    {/* Sticker Chess Piece */}
-                    {pieceInfo && (
-                      <div
-                        className={`text-3xl sm:text-4xl leading-none transition-all drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] filter ${
-                          piece?.color === "w"
-                            ? "text-slate-100 drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)]"
-                            : "text-slate-900 drop-shadow-[0_2px_3px_rgba(255,255,255,0.4)]"
-                        } ${isSelected ? "scale-110 -translate-y-1" : "hover:scale-105"}`}
+                    return (
+                      <button
+                        key={square}
+                        type="button"
+                        onClick={() => handleSquareClick(square)}
+                        className={`relative flex items-center justify-center select-none transition-transform active:scale-95 ${
+                          isLight ? "bg-[#f4dfb8] text-amber-950" : "bg-[#b88648] text-amber-950"
+                        } ${isLastMoveSquare ? "bg-amber-300/80 dark:bg-amber-600/60" : ""} ${
+                          isSelected ? "ring-4 ring-inset ring-amber-500 bg-amber-200/90" : ""
+                        } ${isInCheckSquare ? "bg-red-500/80 ring-4 ring-red-500 animate-pulse" : ""}`}
                       >
-                        {pieceInfo.symbol}
-                      </div>
-                    )}
+                        {/* Retro coordinate labels on edges */}
+                        {file === (myColor === "b" ? "h" : "a") && (
+                          <span className="absolute top-0.5 left-1 text-[9px] font-bold opacity-60">
+                            {rank}
+                          </span>
+                        )}
+                        {rank === (myColor === "b" ? 8 : 1) && (
+                          <span className="absolute bottom-0.5 right-1 text-[9px] font-bold opacity-60">
+                            {file}
+                          </span>
+                        )}
 
-                    {/* Legal Move Indicators (Toybox sticker dots) */}
-                    {isLegalDest && (
-                      <div
-                        className={`absolute rounded-full pointer-events-none ${
-                          piece
-                            ? "w-full h-full border-4 border-amber-600/80 bg-amber-500/20 rounded-lg animate-pulse"
-                            : "w-3.5 h-3.5 sm:w-4 sm:h-4 bg-amber-700/60 shadow-sm"
-                        }`}
-                      />
-                    )}
-                  </button>
-                );
-              }),
-            )}
-          </div>
-        </div>
+                        {/* Sticker Chess Piece */}
+                        {pieceInfo && (
+                          <div
+                            className={`text-3xl sm:text-4xl leading-none transition-all drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] filter ${
+                              piece?.color === "w"
+                                ? "text-slate-100 drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)]"
+                                : "text-slate-900 drop-shadow-[0_2px_3px_rgba(255,255,255,0.4)]"
+                            } ${isSelected ? "scale-110 -translate-y-1" : "hover:scale-105"}`}
+                          >
+                            {pieceInfo.symbol}
+                          </div>
+                        )}
+
+                        {/* Legal Move Indicators (Toybox sticker dots) */}
+                        {isLegalDest && (
+                          <div
+                            className={`absolute rounded-full pointer-events-none ${
+                              piece
+                                ? "w-full h-full border-4 border-amber-600/80 bg-amber-500/20 rounded-lg animate-pulse"
+                                : "w-3.5 h-3.5 sm:w-4 sm:h-4 bg-amber-700/60 shadow-sm"
+                            }`}
+                          />
+                        )}
+                      </button>
+                    );
+                  }),
+                )}
+              </div>
+            </div>
           </>
         )}
 

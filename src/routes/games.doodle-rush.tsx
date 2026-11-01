@@ -88,7 +88,8 @@ function DoodleRushGameHubPage() {
               <div>
                 <p className="font-bold text-foreground">1. One Player Draws</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  A random player receives a secret word and sketches it on the canvas with customizable colors and pen sizes.
+                  A random player receives a secret word and sketches it on the canvas with
+                  customizable colors and pen sizes.
                 </p>
               </div>
             </div>
@@ -100,7 +101,8 @@ function DoodleRushGameHubPage() {
               <div>
                 <p className="font-bold text-foreground">2. Real-Time Guessing</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Strokes appear live on everyone's screens. Guess as many times as you like in real time!
+                  Strokes appear live on everyone's screens. Guess as many times as you like in real
+                  time!
                 </p>
               </div>
             </div>
@@ -112,7 +114,9 @@ function DoodleRushGameHubPage() {
               <div>
                 <p className="font-bold text-foreground">3. Majority Guesses Crown the Artist</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  The winner is the Great Artist whose drawings had the majority of correct guesses! For example, an artist with 5 correct guesses will take 1st place, and an artist with 3 guesses will take 2nd place.
+                  The winner is the Great Artist whose drawings had the majority of correct guesses!
+                  For example, an artist with 5 correct guesses will take 1st place, and an artist
+                  with 3 guesses will take 2nd place.
                 </p>
               </div>
             </div>

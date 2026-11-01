@@ -57,8 +57,6 @@ const COLOR_THEMES: Record<
   },
 };
 
-
-
 export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
   const ludoState = s.ludo;
   const [isRollingAnimation, setIsRollingAnimation] = useState(false);
@@ -211,125 +209,125 @@ export function LudoGame({ s, token, refresh, runAction }: LudoGameProps) {
           </Boundary3D>
         ) : (
           <>
-        {/* The 15x15 Ludo Board Grid */}
-        <div className="relative aspect-square max-w-[440px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-950 shadow-inner bg-card select-none">
-          <div className="grid grid-cols-15 grid-rows-15 w-full h-full">
-            {Array.from({ length: 15 }).map((_, r) =>
-              Array.from({ length: 15 }).map((_, c) => {
-                const key = `${r},${c}`;
-                const tokensHere = cellTokensMap.get(key) ?? [];
+            {/* The 15x15 Ludo Board Grid */}
+            <div className="relative aspect-square max-w-[440px] mx-auto rounded-2xl overflow-hidden border-4 border-amber-950 shadow-inner bg-card select-none">
+              <div className="grid grid-cols-15 grid-rows-15 w-full h-full">
+                {Array.from({ length: 15 }).map((_, r) =>
+                  Array.from({ length: 15 }).map((_, c) => {
+                    const key = `${r},${c}`;
+                    const tokensHere = cellTokensMap.get(key) ?? [];
 
-                // Check cell types
-                const isRedYard = r < 6 && c < 6;
-                const isGreenYard = r < 6 && c >= 9;
-                const isBlueYard = r >= 9 && c < 6;
-                const isYellowYard = r >= 9 && c >= 9;
-                const isCenter = r >= 6 && r <= 8 && c >= 6 && c <= 8;
+                    // Check cell types
+                    const isRedYard = r < 6 && c < 6;
+                    const isGreenYard = r < 6 && c >= 9;
+                    const isBlueYard = r >= 9 && c < 6;
+                    const isYellowYard = r >= 9 && c >= 9;
+                    const isCenter = r >= 6 && r <= 8 && c >= 6 && c <= 8;
 
-                // Check home stretch paths
-                const isRedHomeStretch = r === 7 && c >= 1 && c <= 5;
-                const isGreenHomeStretch = c === 7 && r >= 1 && r <= 5;
-                const isYellowHomeStretch = r === 7 && c >= 9 && c <= 13;
-                const isBlueHomeStretch = c === 7 && r >= 9 && r <= 13;
+                    // Check home stretch paths
+                    const isRedHomeStretch = r === 7 && c >= 1 && c <= 5;
+                    const isGreenHomeStretch = c === 7 && r >= 1 && r <= 5;
+                    const isYellowHomeStretch = r === 7 && c >= 9 && c <= 13;
+                    const isBlueHomeStretch = c === 7 && r >= 9 && r <= 13;
 
-                // Check start squares
-                const isRedStart = r === 6 && c === 1;
-                const isGreenStart = r === 1 && c === 8;
-                const isYellowStart = r === 8 && c === 13;
-                const isBlueStart = r === 13 && c === 6;
+                    // Check start squares
+                    const isRedStart = r === 6 && c === 1;
+                    const isGreenStart = r === 1 && c === 8;
+                    const isYellowStart = r === 8 && c === 13;
+                    const isBlueStart = r === 13 && c === 6;
 
-                // Star safe squares
-                const isSafeStar =
-                  (r === 2 && c === 6) ||
-                  (r === 6 && c === 12) ||
-                  (r === 12 && c === 8) ||
-                  (r === 8 && c === 2) ||
-                  isRedStart ||
-                  isGreenStart ||
-                  isYellowStart ||
-                  isBlueStart;
+                    // Star safe squares
+                    const isSafeStar =
+                      (r === 2 && c === 6) ||
+                      (r === 6 && c === 12) ||
+                      (r === 12 && c === 8) ||
+                      (r === 8 && c === 2) ||
+                      isRedStart ||
+                      isGreenStart ||
+                      isYellowStart ||
+                      isBlueStart;
 
-                let cellClass = "bg-background/80 border border-border/30";
+                    let cellClass = "bg-background/80 border border-border/30";
 
-                if (isRedYard) cellClass = "bg-red-500/20";
-                else if (isGreenYard) cellClass = "bg-emerald-500/20";
-                else if (isYellowYard) cellClass = "bg-amber-400/20";
-                else if (isBlueYard) cellClass = "bg-blue-500/20";
-                else if (isCenter) cellClass = "bg-purple-950/40";
-                else if (isRedHomeStretch || isRedStart) cellClass = "bg-red-500/80";
-                else if (isGreenHomeStretch || isGreenStart) cellClass = "bg-emerald-500/80";
-                else if (isYellowHomeStretch || isYellowStart) cellClass = "bg-amber-400/80";
-                else if (isBlueHomeStretch || isBlueStart) cellClass = "bg-blue-500/80";
+                    if (isRedYard) cellClass = "bg-red-500/20";
+                    else if (isGreenYard) cellClass = "bg-emerald-500/20";
+                    else if (isYellowYard) cellClass = "bg-amber-400/20";
+                    else if (isBlueYard) cellClass = "bg-blue-500/20";
+                    else if (isCenter) cellClass = "bg-purple-950/40";
+                    else if (isRedHomeStretch || isRedStart) cellClass = "bg-red-500/80";
+                    else if (isGreenHomeStretch || isGreenStart) cellClass = "bg-emerald-500/80";
+                    else if (isYellowHomeStretch || isYellowStart) cellClass = "bg-amber-400/80";
+                    else if (isBlueHomeStretch || isBlueStart) cellClass = "bg-blue-500/80";
 
-                return (
-                  <div
-                    key={key}
-                    className={`relative flex items-center justify-center p-0.5 ${cellClass}`}
-                  >
-                    {/* Star Safe Badge */}
-                    {isSafeStar && !isCenter && (
-                      <span className="text-[10px] text-amber-500 pointer-events-none drop-shadow-xs">
-                        ⭐
-                      </span>
-                    )}
+                    return (
+                      <div
+                        key={key}
+                        className={`relative flex items-center justify-center p-0.5 ${cellClass}`}
+                      >
+                        {/* Star Safe Badge */}
+                        {isSafeStar && !isCenter && (
+                          <span className="text-[10px] text-amber-500 pointer-events-none drop-shadow-xs">
+                            ⭐
+                          </span>
+                        )}
 
-                    {/* Yard Center Big Badges */}
-                    {r === 2 && c === 2 && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-2xl font-bold text-red-500/40">
-                        🔴
+                        {/* Yard Center Big Badges */}
+                        {r === 2 && c === 2 && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-2xl font-bold text-red-500/40">
+                            🔴
+                          </div>
+                        )}
+                        {r === 2 && c === 12 && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-2xl font-bold text-emerald-500/40">
+                            🟢
+                          </div>
+                        )}
+                        {r === 12 && c === 12 && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-2xl font-bold text-amber-500/40">
+                            🟡
+                          </div>
+                        )}
+                        {r === 12 && c === 2 && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-2xl font-bold text-blue-500/40">
+                            🔵
+                          </div>
+                        )}
+
+                        {/* Center Home Trophy */}
+                        {r === 7 && c === 7 && (
+                          <span className="text-xl pointer-events-none animate-bounce">🏆</span>
+                        )}
+
+                        {/* Tokens Rendering */}
+                        {tokensHere.length > 0 && (
+                          <div className="flex items-center justify-center -space-x-1.5 z-10">
+                            {tokensHere.map((tok) => (
+                              <button
+                                key={tok.tokenId + tok.color}
+                                type="button"
+                                disabled={!tok.canMove}
+                                onClick={() => handleSelectToken(tok.tokenId)}
+                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center transition-all ${
+                                  COLOR_THEMES[tok.color].tokenBg
+                                } ${
+                                  tok.canMove
+                                    ? "ring-4 ring-white animate-bounce scale-125 cursor-pointer z-20"
+                                    : "cursor-default"
+                                }`}
+                              >
+                                <span className="text-[10px] text-white font-black leading-none drop-shadow-sm">
+                                  {tok.tokenId + 1}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {r === 2 && c === 12 && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-2xl font-bold text-emerald-500/40">
-                        🟢
-                      </div>
-                    )}
-                    {r === 12 && c === 12 && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-2xl font-bold text-amber-500/40">
-                        🟡
-                      </div>
-                    )}
-                    {r === 12 && c === 2 && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-2xl font-bold text-blue-500/40">
-                        🔵
-                      </div>
-                    )}
-
-                    {/* Center Home Trophy */}
-                    {r === 7 && c === 7 && (
-                      <span className="text-xl pointer-events-none animate-bounce">🏆</span>
-                    )}
-
-                    {/* Tokens Rendering */}
-                    {tokensHere.length > 0 && (
-                      <div className="flex items-center justify-center -space-x-1.5 z-10">
-                        {tokensHere.map((tok) => (
-                          <button
-                            key={tok.tokenId + tok.color}
-                            type="button"
-                            disabled={!tok.canMove}
-                            onClick={() => handleSelectToken(tok.tokenId)}
-                            className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center transition-all ${
-                              COLOR_THEMES[tok.color].tokenBg
-                            } ${
-                              tok.canMove
-                                ? "ring-4 ring-white animate-bounce scale-125 cursor-pointer z-20"
-                                : "cursor-default"
-                            }`}
-                          >
-                            <span className="text-[10px] text-white font-black leading-none drop-shadow-sm">
-                              {tok.tokenId + 1}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              }),
-            )}
-          </div>
-        </div>
+                    );
+                  }),
+                )}
+              </div>
+            </div>
           </>
         )}
 

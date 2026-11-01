@@ -1,13 +1,8 @@
-export type DoodleRushPhase =
-  | "lobby"
-  | "countdown"
-  | "drawing"
-  | "round_end"
-  | "game_over";
+export type DoodleRushPhase = "lobby" | "countdown" | "drawing" | "round_end" | "game_over";
 
 export interface DoodleRushSettings {
-  rounds: number;      // how many drawing rounds
-  drawTime: number;    // seconds per drawing turn
+  rounds: number; // how many drawing rounds
+  drawTime: number; // seconds per drawing turn, 0 = no time limit
 }
 
 export interface DrawStroke {
@@ -30,15 +25,16 @@ export interface DoodleRushRound {
   roundNumber: number;
   drawerId: string;
   drawerName: string;
-  word: string | null;   // null for all but drawer until round ends
-  revealedWord: string | null;  // revealed after round
+  word: string | null; // null for all but drawer until round ends
+  revealedWord: string | null; // revealed after round
   wordLength: number;
   revealedIndices: number[]; // indices of letters revealed randomly
   wordMask: string; // e.g. "E _ _ P _ _ _ T"
   latestCorrectGuesser: { displayName: string; submittedAt: string } | null;
-  strokes: DrawStroke[];
+  /** bumps every time the drawer's canvas snapshot is saved; guessers fetch the picture when it changes */
+  canvasSeq: number;
   guesses: DoodleRushGuess[];
-  winnerIds: string[];   // players who guessed correctly
+  winnerIds: string[]; // players who guessed correctly
   endsAt: string | null;
   ended: boolean;
 }
@@ -53,7 +49,9 @@ export interface DoodleRushClientState {
   roundNumber: number;
   totalRounds: number;
   countdownEndsAt: string | null;
-  isDrawer: boolean;   // computed for this client
+  /** when the next drawing starts by itself (shown between rounds) */
+  nextAt: string | null;
+  isDrawer: boolean; // computed for this client
 }
 
 export interface DoodleRushServerData {
@@ -64,33 +62,14 @@ export interface DoodleRushServerData {
   guesserScores: Record<string, number>;
   drawerNames: Record<string, string>;
   roundNumber: number;
-  drawerOrder: string[];  // profile_ids in order
+  drawerOrder: string[]; // profile_ids in order
   drawerIndex: number;
   usedWords: string[];
   countdownEndsAt: string | null;
+  nextAt: string | null;
 }
 
 export const DEFAULT_DOODLE_RUSH_SETTINGS: DoodleRushSettings = {
   rounds: 3,
-  drawTime: 80,
+  drawTime: 0, // no time limit by default
 };
-
-// ── Word bank for drawing ─────────────────────────────────────────────────────
-export const DRAW_WORDS: string[] = [
-  // Animals
-  "elephant", "giraffe", "penguin", "dolphin", "kangaroo", "butterfly", "octopus", "crocodile",
-  // Food
-  "pizza", "sushi", "hamburger", "watermelon", "ice cream", "hotdog", "pretzel", "tacos",
-  // Objects
-  "umbrella", "telescope", "guitar", "bicycle", "camera", "backpack", "lantern", "compass",
-  // Places
-  "lighthouse", "volcano", "castle", "pyramid", "igloo", "windmill", "skyscraper", "treehouse",
-  // Actions
-  "dancing", "swimming", "skateboarding", "sleeping", "cooking", "painting", "reading", "flying",
-  // Nature
-  "rainbow", "tornado", "snowflake", "cactus", "mushroom", "waterfall", "sunset", "aurora",
-  // Fun
-  "robot", "alien", "dragon", "mermaid", "unicorn", "zombie", "pirate", "astronaut",
-  // Everyday
-  "toothbrush", "bathtub", "bookshelf", "blender", "hairdryer", "calculator", "mailbox", "escalator",
-];

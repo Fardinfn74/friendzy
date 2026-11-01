@@ -60,7 +60,6 @@ export type HintEntry = {
 
 import type { WordDuelClientState } from "@/games/word-duel/types";
 import type { NumberGuessClientState } from "@/games/number-guess/types";
-import type { BottleSpinClientState } from "@/games/bottle-spin/types";
 import type { TruthOrDareClientState } from "@/games/truth-or-dare/types";
 import type { ChessClientState } from "@/games/chess/types";
 import type { LudoClientState } from "@/games/ludo/types";
@@ -74,7 +73,6 @@ export type GameState = {
   gameSettings?: Record<string, string | number | boolean | null> | null;
   wordDuel?: WordDuelClientState | null;
   numberGuess?: NumberGuessClientState | null;
-  bottleSpin?: BottleSpinClientState | null;
   truthOrDare?: TruthOrDareClientState | null;
   chess?: ChessClientState | null;
   ludo?: LudoClientState | null;
